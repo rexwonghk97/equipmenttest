@@ -4,7 +4,7 @@ import sqlite3
 
 message = st.chat_message("ai")  # 或者寫 "ai"
 # message = st.chat_message("assistant", avatar="🦖")  # 自訂頭像
-message.write("你好！我是 ChatBot 🤖，可以回答問題及提供這個數據庫的資訊。")
+message.write("你好！我是 ChatBot Rex-iv，可以回答問題及提供這個數據庫的資訊。")
 
 # 用戶輸入區
 user_input = st.chat_input("Say something...")
