@@ -2,6 +2,10 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 
+message = st.chat_message("assistant")  # 或者寫 "ai"
+# message = st.chat_message("assistant", avatar="🦖")  # 自訂頭像
+message.write("你好！我是 ChatBot 🤖，可以回答各種問題，提供資訊。")
+
 # 用戶輸入區
 user_input = st.chat_input("Say something...")
 if user_input:
