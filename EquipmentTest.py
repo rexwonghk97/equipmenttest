@@ -1,10 +1,6 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-import openai
-
-# Set your OpenAI API key
-openai.api_key = 'YOUR_API_KEY'
 
 # Set up the database connection
 def get_database_connection():
@@ -50,14 +46,6 @@ def fetch_equipment_data(conn, availability, equipment_type='ALL'):
     
     return pd.read_sql_query(query, conn, params=params)
 
-def get_chatbot_response(prompt):
-    """Get a response from the OpenAI API."""
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response['choices'][0]['message']['content']
-
 # Set a session state variable to track which section is active
 if 'active_page' not in st.session_state:
     st.session_state.active_page = "Overview"  # Default to Overview
@@ -69,7 +57,6 @@ if 'authenticated' not in st.session_state:
 if 'login_expander_open' not in st.session_state:
     st.session_state.login_expander_open = True  # Keep it true initially for the first time
 
-# Add CSS styling
 st.markdown(
     """
     <style>
@@ -87,7 +74,6 @@ st.markdown(
 overview_button = st.sidebar.button("🖥️ Overview")
 query_function_button = st.sidebar.button("🔎 View Equipment")
 loadreturn_button = st.sidebar.button("📑 Loan & Return")
-chatbot_button = st.sidebar.button("💬 Chat with AI")
 
 # Authentication section
 if not st.session_state.authenticated:
@@ -110,8 +96,6 @@ elif query_function_button:
     st.session_state.active_page = "View Equipment"
 elif loadreturn_button and st.session_state.authenticated:
     st.session_state.active_page = "Equipment Loan & Return"
-elif chatbot_button:
-    st.session_state.active_page = "Chatbot"
 
 # Conditional rendering based on the active page
 if st.session_state.active_page == "Overview":
@@ -233,46 +217,35 @@ elif st.session_state.active_page == "Equipment Loan & Return":
                 st.session_state.selected_items_return = []
 
             if not unavailable_data.empty:
-                    # Create a checkbox for each unavailable equipment
-                    selected_items_return = st.multiselect(
-                        "Select Equipment to Return",
-                        options=unavailable_data['EquipmentList_ID'],
-                        format_func=lambda x: f"{unavailable_data.loc[unavailable_data['EquipmentList_ID'] == x, 'Equipment_Name'].values[0]} ({x})",
-                        default=st.session_state.selected_items_return  # Setting default to persist selection
-                    )
+                # Create a checkbox for each unavailable equipment
+                selected_items_return = st.multiselect(
+                    "Select Equipment to Return",
+                    options=unavailable_data['EquipmentList_ID'],
+                    format_func=lambda x: f"{unavailable_data.loc[unavailable_data['EquipmentList_ID'] == x, 'Equipment_Name'].values[0]} ({x})",
+                    default=st.session_state.selected_items_return  # Set default to persist selection
+                )
 
-                    # Update session state based on selected items
-                    st.session_state.selected_items_return = selected_items_return
+                # Update session state based on selected items
+                st.session_state.selected_items_return = selected_items_return
 
-                    # Confirm button for returning equipment
-                    if st.button("Confirm Return"):
-                        for equipment_id in st.session_state.selected_items_return:
-                            # Update Loan_History to set Availability to 'Yes'
-                            update_query = """
-                            UPDATE Loan_History
-                            SET Availability = 'Yes', Loan_From = NULL
-                            WHERE Equipment_ID = ?
-                            """
-                            try:
-                                conn.execute(update_query, (equipment_id,))
-                                conn.commit()
-                                st.success(f"Updated availability for Equipment ID {equipment_id}.")
-                            except Exception as e:
-                                st.error(f"Error updating Equipment ID {equipment_id}: {e}")
+
+                # Confirm button for returning equipment
+                if st.button("Confirm Return"):
+                    for equipment_id in st.session_state.selected_items_return:
+                        # Update Loan_History to set Availability to 'Yes'
+                        update_query = """
+                        UPDATE Loan_History
+                        SET Availability = 'Yes', Loan_From = NULL
+                        WHERE Equipment_ID = ?
+                        """
+                        try:
+                            conn.execute(update_query, (equipment_id,))
+                            conn.commit()
+                            st.success(f"Updated availability for Equipment ID {equipment_id}.")
+                        except Exception as e:
+                            st.error(f"Error updating Equipment ID {equipment_id}: {e}")
             else:
                 st.write("No unavailable equipment to return.")
 
-# Chatbot Functionality
-elif st.session_state.active_page == "Chatbot":
-    st.title("Chat with AI")
-    user_input = st.chat_input("Say something...")
-
-    if user_input:
-        st.chat_message("user").write(user_input)
-        with st.spinner("Thinking..."):
-            bot_response = get_chatbot_response(user_input)
-            st.chat_message("assistant").write(bot_response)
-
 else:
     st.write("Welcome! Please navigate using the buttons.")
-
