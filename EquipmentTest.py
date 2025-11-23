@@ -77,7 +77,7 @@ loadreturn_button = st.sidebar.button("📑 Loan & Return")
 
 # Authentication section
 if not st.session_state.authenticated:
-    with st.sidebar.expander("Login", expanded=st.session_state.login_expander_open):
+    with st.sidebar.expander("Login (Staff Only)", expanded=st.session_state.login_expander_open):
         name = st.selectbox("Select Your Name", ["Select...", "Tobby", "Rex"], index=0)
         password = st.text_input("Password", type="password")
 
