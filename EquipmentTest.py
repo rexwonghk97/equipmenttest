@@ -61,8 +61,8 @@ st.markdown(
     """
     <style>
     .stButton > button {
-        min-width: 240px;  /* Minimum width */
-        width: 240px;      /* Fixed width */
+        min-width: 200px;  /* Minimum width */
+        width: 200px;      /* Fixed width */
         height: 40px;      /* Optional: Set standard height */
     }
     </style>
@@ -73,7 +73,7 @@ st.markdown(
 # Sidebar buttons for navigation
 overview_button = st.sidebar.button("🖥️ Overview")
 query_function_button = st.sidebar.button("🔎 View Equipment")
-loadreturn_button = st.sidebar.button("📑 Equipment Loan & Return")
+loadreturn_button = st.sidebar.button("📑 Loan & Return")
 
 # Authentication section
 if not st.session_state.authenticated:
