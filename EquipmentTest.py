@@ -2,18 +2,6 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 
-st.title("簡單的聊天界面")
-st.write("這是一個不使用AI的基本聊天示例。")
-
-# 設定預設用戶消息
-with st.chat_message("user"):
-    st.write("Hi 👋，請問你是誰？")
-
-# 固定的助手消息
-message = st.chat_message("assistant")
-message.write("你好！我是 ChatBot 🤖，可以回答各種問題，提供資訊。")
-message.write("有什麼我可以幫助你的嗎？")
-
 # 用戶輸入區
 user_input = st.chat_input("Say something...")
 if user_input:
@@ -23,7 +11,7 @@ if user_input:
 
     # 假設是一個靜態回應
     with st.chat_message("assistant"):
-        st.write("謝謝你的問題！這是一個靜態的回應示例。")
+        st.write("謝謝你的問題！這是一個測試版DataBase。")
         
 # Set up the database connection
 def get_database_connection():
