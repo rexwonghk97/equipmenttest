@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-from transformers import BlenderbotTokenizer, BlenderbotForConditionalGeneration
+from transformers import BlenderbotTokenizer
+from transformers import BlenderbotForConditionalGeneration
+
 
 # Initialize the model and tokenizer
 @st.experimental_singleton
