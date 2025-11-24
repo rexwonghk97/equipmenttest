@@ -1,41 +1,22 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-from transformers import BlenderbotTokenizer
-from transformers import BlenderbotForConditionalGeneration
 
-
-# Initialize the model and tokenizer
-@st.experimental_singleton
-def get_models():
-    model_name = "facebook/blenderbot-400M-distill"
-    tokenizer = BlenderbotTokenizer.from_pretrained(model_name)
-    model = BlenderbotForConditionalGeneration.from_pretrained(model_name)
-    return tokenizer, model
-
-# Function to generate chatbot responses
-def generate_response(user_input):
-    tokenizer, model = get_models()
-    inputs = tokenizer(user_input, return_tensors="pt")
-    result = model.generate(**inputs)
-    response = tokenizer.decode(result[0], skip_special_tokens=True)
-    return response
-
-# Chat interface initialization
-message = st.chat_message("ai")
+message = st.chat_message("ai")  # 或者寫 "ai"
+# message = st.chat_message("assistant", avatar="🦖")  # 自訂頭像
 message.write("你好！我是 ChatBot Rex-iv，可以回答問題及提供這個數據庫的資訊。")
 
-# User input area
+# 用戶輸入區
 user_input = st.chat_input("Say something...")
 if user_input:
+    # 這裡您可以對用戶的輸入進行解析或回應
     with st.chat_message("user"):
         st.write(user_input)
 
-    # Generate and display the response from the AI
-    bot_response = generate_response(user_input)
+    # 假設是一個靜態回應
     with st.chat_message("assistant"):
-        st.write(bot_response)
-
+        st.write("謝謝你的問題！這是一個測試版DataBase。")
+        
 # Set up the database connection
 def get_database_connection():
     return sqlite3.connect('Test_equipment_database.db')
@@ -50,15 +31,18 @@ def fetch_equipment_data(conn, availability, equipment_type='ALL'):
     query_conditions = []
     params = []
 
+    # Determine availability filter
     if availability != 'All':
         query_conditions.append('Loan_History.Availability = ?')
         params.append(availability)
 
+    # Determine type filter
     if equipment_type != 'ALL':
         query_conditions.append("Equipment_List.Type = ?")
         params.append(equipment_type)
 
-    availability_condition = ' AND '.join(query_conditions) if query_conditions else '1=1'
+    # Create the SQL query with conditions
+    availability_condition = ' AND '.join(query_conditions) if query_conditions else '1=1'  # If no conditions, return everything
 
     query = f"""
     SELECT 
@@ -79,22 +63,22 @@ def fetch_equipment_data(conn, availability, equipment_type='ALL'):
 
 # Set a session state variable to track which section is active
 if 'active_page' not in st.session_state:
-    st.session_state.active_page = "Overview"
+    st.session_state.active_page = "Overview"  # Default to Overview
 
 if 'authenticated' not in st.session_state:
-    st.session_state.authenticated = False
+    st.session_state.authenticated = False  # Track authentication status
 
 # Track if the login expander is open
 if 'login_expander_open' not in st.session_state:
-    st.session_state.login_expander_open = True
+    st.session_state.login_expander_open = True  # Keep it true initially for the first time
 
 st.markdown(
     """
     <style>
     .stButton > button {
-        min-width: 200px; 
-        width: 200px;      
-        height: 40px;     
+        min-width: 200px;  /* Minimum width */
+        width: 200px;      /* Fixed width */
+        height: 40px;      /* Optional: Set standard height */
     }
     </style>
     """,
@@ -115,8 +99,8 @@ if not st.session_state.authenticated:
         if st.button("Login"):
             if name != "Select..." and password == "0000":
                 st.session_state.authenticated = True
-                st.session_state.login_expander_open = False
-                st.session_state.active_page = "Equipment Loan & Return"
+                st.session_state.login_expander_open = False  # Close expander after successful login
+                st.session_state.active_page = "Equipment Loan & Return"  # Navigate after login
             else:
                 st.error("Invalid Password!")
 
@@ -130,7 +114,7 @@ elif loadreturn_button and st.session_state.authenticated:
 
 # Conditional rendering based on the active page
 if st.session_state.active_page == "Overview":
-    tab1 = st.tabs(["Information"])[0]
+    tab1 = st.tabs(["Information"])[0]  # Only tab1 is created
     with tab1:
         st.title('Overview:')
         st.subheader('This is a test page for viewing equipment')
@@ -165,10 +149,12 @@ elif st.session_state.active_page == "View Equipment":
         with tab4:
             st.write("Find Available Equipment")
 
+            # Selectbox for Type
             selected_type_label = st.selectbox(
                 'Please select an equipment type', ['ALL'] + types
             )
 
+            # Availability options
             availability_options = ["All", "Yes", "No"]
             selected_availability = st.selectbox(
                 'Select availability', availability_options
@@ -191,27 +177,33 @@ elif st.session_state.active_page == "Equipment Loan & Return":
     st.subheader("Select items to mark them as loaned out.")
 
     with get_database_connection() as conn:
-        types = fetch_types(conn)
+        types = fetch_types(conn)  # Fetch types for filtering
 
         tab5, tab6 = st.tabs(["Loan Equipment", "Return Equipment"])
 
         with tab5:
+            # Allow user to select a type for filtering available items
             selected_type = st.selectbox("Select Equipment Type", ['ALL'] + types)
 
+            # Query to fetch available equipment based on selected type
             available_data = fetch_equipment_data(conn, 'Yes', selected_type)
 
             if not available_data.empty:
+                # Create a checkbox for each available equipment
                 selected_items = st.multiselect(
                     "Select Equipment to Loan Out",
                     options=available_data['EquipmentList_ID'],
                     format_func=lambda x: f"{available_data.loc[available_data['EquipmentList_ID'] == x, 'Equipment_Name'].values[0]} ({x})"
                 )
 
+                # Input for Loan_From
                 loan_from_date = st.text_input("Enter the Loan From date (e.g., YYYY-MM-DD)")
 
+                # Confirm button
                 if st.button("Confirm Loan"):
                     if selected_items and loan_from_date:
                         for equipment_id in selected_items:
+                            # Update Loan_History to set Availability to 'No' and set Loan_From
                             update_query = """
                             UPDATE Loan_History
                             SET Availability = 'No', Loan_From = ?
@@ -229,14 +221,18 @@ elif st.session_state.active_page == "Equipment Loan & Return":
                 st.write("No available equipment to loan out.")
 
         with tab6:
+            # Allow user to select a type for filtering unavailable items
             selected_type = st.selectbox("Select Equipment Type for Return", ['ALL'] + types)
 
+            # Query to fetch unavailable equipment based on selected type
             unavailable_data = fetch_equipment_data(conn, 'No', selected_type)
 
+            # Store selected items in session state to persist their value
             if 'selected_items_return' not in st.session_state:
                 st.session_state.selected_items_return = []
 
             if not unavailable_data.empty:
+                # Create a checkbox for each unavailable equipment
                 selected_items_return = st.multiselect(
                     "Select Equipment to Return",
                     options=unavailable_data['EquipmentList_ID'],
@@ -246,6 +242,7 @@ elif st.session_state.active_page == "Equipment Loan & Return":
 
                 # Update session state based on selected items
                 st.session_state.selected_items_return = selected_items_return
+
 
                 # Confirm button for returning equipment
                 if st.button("Confirm Return"):
