@@ -1,6 +1,7 @@
-python==3.10.0
+python ==3.10.0
 streamlit
 pandas
 sqlite3
 transformers
+
 
