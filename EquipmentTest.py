@@ -12,39 +12,61 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling and BLACK TEXT for metrics
+# --- 2. CUSTOM CSS ---
 st.markdown("""
     <style>
-    /* Style for Metrics container */
-    div[data-testid="stMetric"] {
-        background-color: #f0f2f6;
-        padding: 10px;
-        border-radius: 10px;
-        border: 1px solid #d6d6d6;
-    }
-    
-    /* Force Metric Label (Title) to Black */
-    label[data-testid="stMetricLabel"] {
-        color: #000000 !important;
-    }
-    
-    /* Force Metric Value (Number) to Black */
-    div[data-testid="stMetricValue"] {
-        color: #000000 !important;
+    /* MAIN CONTAINER PADDING */
+    .block-container {
+        padding-top: 1.5rem;
     }
 
-    .block-container {
-        padding-top: 2rem;
+    /* CUSTOM METRIC CARDS */
+    .metric-card-container {
+        background-color: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        text-align: center;
+        transition: transform 0.2s;
+    }
+    .metric-card-container:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    }
+    .metric-title {
+        color: #6c757d;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+    }
+    .metric-value {
+        color: #212529;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    .metric-icon {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+        display: inline-block;
+        padding: 10px;
+        border-radius: 50%;
+    }
+    
+    /* ROW ITEM STYLING IN LOAN/RETURN */
+    .item-row {
+        padding: 10px 0;
+        border-bottom: 1px solid #f0f0f0;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. DATABASE FUNCTIONS ---
+# --- 3. DATABASE FUNCTIONS ---
 def get_database_connection():
     return sqlite3.connect('Test_equipment_database.db')
 
 def fetch_types(conn):
-    """Fetch distinct Types from the database."""
     try:
         query = "SELECT DISTINCT Type FROM Equipment_List"
         return pd.read_sql_query(query, conn)['Type'].tolist()
@@ -52,7 +74,6 @@ def fetch_types(conn):
         return []
 
 def fetch_equipment_data(conn, availability='All', equipment_type='ALL'):
-    """Fetch equipment based on availability and type."""
     query_conditions = []
     params = []
 
@@ -73,53 +94,59 @@ def fetch_equipment_data(conn, availability='All', equipment_type='ALL'):
         Equipment_List.Name,
         Equipment_List.Brand,
         Equipment_List.Qty,
+        Equipment_List.item_created AS Created_Date,
         Loan_History.Availability,
         Loan_History.Loan_From AS Loan_Start
     FROM Equipment_List
     JOIN Loan_History ON Equipment_List.Equipment_ID = Loan_History.Equipment_ID
     WHERE {availability_condition}
     """
-    
     return pd.read_sql_query(query, conn, params=params)
 
-# --- 3. SESSION STATE SETUP ---
+# --- 4. SESSION STATE ---
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 
-# --- 4. SIDEBAR NAVIGATION ---
+# --- 5. SIDEBAR NAVIGATION ---
 st.sidebar.title("🛠️ Lab Manager")
 
-# Login Logic
 if not st.session_state.authenticated:
     with st.sidebar.expander("🔐 Staff Login", expanded=True):
         with st.form("login_form"):
             name = st.selectbox("Select Name", ["Tobby", "Rex"], index=None, placeholder="Choose user...")
             password = st.text_input("Password", type="password")
             submitted = st.form_submit_button("Login", use_container_width=True)
-            
-            if submitted:
-                if name and password == "0000":
-                    st.session_state.authenticated = True
-                    st.toast(f"Welcome back, {name}!", icon="👋")
-                    st.rerun()
-                else:
-                    st.error("Invalid credentials.")
-    
-    # If not logged in, only show View Equipment
+            if submitted and name and password == "0000":
+                st.session_state.authenticated = True
+                st.toast(f"Welcome back, {name}!", icon="👋")
+                st.rerun()
+            elif submitted:
+                st.error("Invalid credentials.")
     page_options = ["View Equipment"]
 else:
     st.sidebar.success("Logged in as Staff")
     if st.sidebar.button("Logout", icon="🔒"):
         st.session_state.authenticated = False
         st.rerun()
-    # Full navigation (Overview removed as requested)
     page_options = ["View Equipment", "Loan & Return"]
 
-# Use radio button for navigation
 selected_page = st.sidebar.radio("Navigation", page_options)
 
 
-# --- 5. MAIN PAGE LOGIC ---
+# --- HELPER FUNCTION FOR METRIC CARDS ---
+def display_metric_card(title, value, icon, color_bg):
+    st.markdown(f"""
+    <div class="metric-card-container">
+        <div class="metric-icon" style="background-color: {color_bg};">
+            {icon}
+        </div>
+        <div class="metric-title">{title}</div>
+        <div class="metric-value">{value}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# --- 6. MAIN PAGE LOGIC ---
 
 # === PAGE: VIEW EQUIPMENT ===
 if selected_page == "View Equipment":
@@ -128,59 +155,66 @@ if selected_page == "View Equipment":
     with get_database_connection() as conn:
         types = fetch_types(conn)
         
-        # Dashboard Metrics (Quick Stats)
+        # 1. Dashboard Metrics (Custom HTML/CSS)
         try:
             df_all = fetch_equipment_data(conn)
-            total_items = len(df_all)
-            available_items = len(df_all[df_all['Availability'] == 'Yes'])
-            loaned_items = len(df_all[df_all['Availability'] == 'No'])
+            total = len(df_all)
+            avail = len(df_all[df_all['Availability'] == 'Yes'])
+            loaned = len(df_all[df_all['Availability'] == 'No'])
 
             c1, c2, c3 = st.columns(3)
-            # Text color forced to black via CSS at top of script
-            c1.metric("Total Assets", total_items)
-            c2.metric("Available", available_items)
-            c3.metric("Loaned Out", loaned_items)
+            with c1:
+                display_metric_card("Total Assets", total, "📦", "#e3f2fd") # Blue bg
+            with c2:
+                display_metric_card("Available", avail, "✅", "#e8f5e9") # Green bg
+            with c3:
+                display_metric_card("Loaned Out", loaned, "⏳", "#fff3e0") # Orange bg
+
         except Exception:
             st.warning("Could not load metrics. Database might be empty.")
 
-        st.divider()
-
-        # Filters
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            selected_type = st.selectbox('Filter by Type', ['ALL'] + types)
-        with col2:
-            selected_availability = st.selectbox('Filter by Status', ["All", "Available Only", "Loaned Out"])
+        st.write("") # Spacer
         
-        avail_map = {"All": "All", "Available Only": "Yes", "Loaned Out": "No"}
-        
-        try:
-            filtered_data = fetch_equipment_data(conn, avail_map[selected_availability], selected_type)
+        # 2. Filters & Dataframe
+        with st.container(border=True):
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                selected_type = st.selectbox('Filter by Type', ['ALL'] + types)
+            with col2:
+                selected_availability = st.selectbox('Filter by Status', ["All", "Available Only", "Loaned Out"])
             
-            if filtered_data.empty:
-                st.info("No equipment found matching these criteria.")
-            else:
-                st.dataframe(
-                    filtered_data,
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        "Availability": st.column_config.TextColumn(
-                            "Status",
-                            validate="^(Yes|No)$"
-                        ),
-                        "Loan_Start": st.column_config.DateColumn(
-                            "Loaned Since",
-                            format="YYYY-MM-DD"
-                        )
-                    }
-                )
-        except Exception as e:
-            st.error(f"Database Error: {e}")
+            avail_map = {"All": "All", "Available Only": "Yes", "Loaned Out": "No"}
+            
+            try:
+                filtered_data = fetch_equipment_data(conn, avail_map[selected_availability], selected_type)
+                
+                if filtered_data.empty:
+                    st.info("No equipment found matching these criteria.")
+                else:
+                    st.dataframe(
+                        filtered_data,
+                        use_container_width=True,
+                        hide_index=True,
+                        column_config={
+                            "Availability": st.column_config.TextColumn(
+                                "Status",
+                                width="medium",
+                                validate="^(Yes|No)$"
+                            ),
+                            "Loan_Start": st.column_config.DateColumn(
+                                "Loaned Since",
+                                format="YYYY-MM-DD"
+                            ),
+                            "ID": st.column_config.TextColumn("ID", width="small"),
+                            "Qty": st.column_config.NumberColumn("Qty", width="small")
+                        }
+                    )
+            except Exception as e:
+                st.error(f"Database Error: {e}")
 
-    # Chatbot Component (Moved here)
+    # 3. Chatbot
     st.divider()
-    with st.expander("💬 Open Support Assistant", expanded=False):
+    with st.expander("💬 Support Assistant"):
         chatbot_code = """
         <div id="chatbot-container"></div>
         <script src="https://cdn.botpress.cloud/webchat/v3.3/inject.js" defer></script>
@@ -195,38 +229,64 @@ elif selected_page == "Loan & Return":
     
     with get_database_connection() as conn:
         types = fetch_types(conn)
-        
         tab_loan, tab_return = st.tabs(["📤 Loan Out", "📥 Return Item"])
 
         # --- LOAN TAB ---
         with tab_loan:
             st.subheader("Process New Loan")
             
-            col_filter, col_date = st.columns(2)
-            with col_filter:
-                loan_type_filter = st.selectbox("Filter Available Items by Type", ['ALL'] + types, key="loan_type")
-            with col_date:
+            # Filter Section
+            c_fil, c_date = st.columns([1, 1])
+            with c_fil:
+                loan_type_filter = st.selectbox("Filter by Type", ['ALL'] + types, key="loan_type")
+            with c_date:
                 loan_date = st.date_input("Loan Start Date", value=date.today())
 
             available_data = fetch_equipment_data(conn, 'Yes', loan_type_filter)
 
             if not available_data.empty:
                 with st.form("loan_form"):
-                    st.write("Select Items to Loan:")
+                    st.markdown("### Select Items to Loan")
+                    st.caption("Check the box on the left to select an item.")
                     
-                    # Create a scrollable container for checkboxes
+                    # Header Row
+                    h1, h2, h3, h4 = st.columns([0.5, 2.5, 2, 2])
+                    h1.markdown("**Select**")
+                    h2.markdown("**Equipment Name & ID**")
+                    h3.markdown("**Details (Brand/Type)**")
+                    h4.markdown("**Status**")
+                    st.divider()
+
+                    # Scrollable List of Detailed Items
                     selected_ids = []
-                    with st.container(height=300, border=True):
-                        # Iterate through data to create checkboxes
+                    with st.container(height=400):
                         for index, row in available_data.iterrows():
-                            # Use unique keys for each checkbox
-                            is_checked = st.checkbox(
-                                f"{row['Name']} (ID: {row['ID']})", 
-                                key=f"loan_chk_{row['ID']}"
-                            )
-                            if is_checked:
-                                selected_ids.append(row['ID'])
-                    
+                            c1, c2, c3, c4 = st.columns([0.5, 2.5, 2, 2])
+                            
+                            # Col 1: Checkbox
+                            with c1:
+                                is_checked = st.checkbox("", key=f"loan_chk_{row['ID']}")
+                                if is_checked:
+                                    selected_ids.append(row['ID'])
+                            
+                            # Col 2: Name & ID
+                            with c2:
+                                st.markdown(f"**{row['Name']}**")
+                                st.caption(f"ID: {row['ID']}")
+                            
+                            # Col 3: Brand & Type
+                            with c3:
+                                st.text(f"Brand: {row['Brand']}")
+                                st.text(f"Type:  {row['Type']}")
+                            
+                            # Col 4: Qty & Date
+                            with c4:
+                                st.markdown(f"Qty: **{row['Qty']}**")
+                                st.caption(f"Created: {row['Created_Date']}")
+                            
+                            st.markdown("<hr style='margin: 5px 0; opacity: 0.3;'>", unsafe_allow_html=True)
+
+                    st.write("")
                     submitted_loan = st.form_submit_button("Confirm Loan ✅", type="primary")
 
                     if submitted_loan:
@@ -238,38 +298,59 @@ elif selected_page == "Loan & Return":
                                         (loan_date, equipment_id)
                                     )
                                 conn.commit()
-                                st.toast(f"Successfully loaned {len(selected_ids)} item(s)!", icon="✅")
+                                st.toast(f"Success! Loaned {len(selected_ids)} items.", icon="✅")
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"Error: {e}")
                         else:
-                            st.warning("Please check at least one item.")
+                            st.warning("Please select at least one item.")
             else:
-                st.info("No items currently available for this type.")
+                st.info("No items currently available.")
 
         # --- RETURN TAB ---
         with tab_return:
             st.subheader("Process Return")
             
-            return_type_filter = st.selectbox("Filter Loaned Items by Type", ['ALL'] + types, key="return_type")
+            return_type_filter = st.selectbox("Filter by Type", ['ALL'] + types, key="return_type")
             unavailable_data = fetch_equipment_data(conn, 'No', return_type_filter)
 
             if not unavailable_data.empty:
                 with st.form("return_form"):
-                    st.write("Select Items to Return:")
+                    st.markdown("### Select Items to Return")
                     
-                    selected_return_ids = []
-                    # Create a scrollable container for checkboxes
-                    with st.container(height=300, border=True):
-                        for index, row in unavailable_data.iterrows():
-                            # Use unique keys for each checkbox
-                            is_checked = st.checkbox(
-                                f"{row['Name']} (ID: {row['ID']})", 
-                                key=f"ret_chk_{row['ID']}"
-                            )
-                            if is_checked:
-                                selected_return_ids.append(row['ID'])
+                    # Header Row
+                    h1, h2, h3, h4 = st.columns([0.5, 2.5, 2, 2])
+                    h1.markdown("**Select**")
+                    h2.markdown("**Equipment Name & ID**")
+                    h3.markdown("**Details**")
+                    h4.markdown("**Loan Details**")
+                    st.divider()
 
+                    selected_return_ids = []
+                    with st.container(height=400):
+                        for index, row in unavailable_data.iterrows():
+                            c1, c2, c3, c4 = st.columns([0.5, 2.5, 2, 2])
+                            
+                            with c1:
+                                is_checked = st.checkbox("", key=f"ret_chk_{row['ID']}")
+                                if is_checked:
+                                    selected_return_ids.append(row['ID'])
+                            
+                            with c2:
+                                st.markdown(f"**{row['Name']}**")
+                                st.caption(f"ID: {row['ID']}")
+                            
+                            with c3:
+                                st.text(f"Brand: {row['Brand']}")
+                                st.text(f"Type:  {row['Type']}")
+                            
+                            with c4:
+                                st.markdown(f"📅 Loaned: **{row['Loan_Start']}**")
+                                st.caption("Status: On Loan")
+
+                            st.markdown("<hr style='margin: 5px 0; opacity: 0.3;'>", unsafe_allow_html=True)
+
+                    st.write("")
                     submitted_return = st.form_submit_button("Confirm Return 📥", type="primary")
 
                     if submitted_return:
@@ -281,11 +362,11 @@ elif selected_page == "Loan & Return":
                                         (equipment_id,)
                                     )
                                 conn.commit()
-                                st.toast(f"Successfully returned {len(selected_return_ids)} item(s)!", icon="✅")
+                                st.toast(f"Success! Returned {len(selected_return_ids)} items.", icon="✅")
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"Error: {e}")
                         else:
-                            st.warning("Please check at least one item.")
+                            st.warning("Please select at least one item.")
             else:
-                st.info("No items currently loaned out for this type.")
+                st.info("No items currently loaned out.")
