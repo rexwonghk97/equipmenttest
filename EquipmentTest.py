@@ -217,8 +217,8 @@ if selected_page == "View Equipment":
     <!-- Custom CSS to Force Left Positioning inside the iframe -->
     <style>
         /* This moves the chatbot bubble/window to the left side */
-        .bp-widget-widget { left: 20px !important; right: auto !important; }
-        .bp-widget-side { left: 20px !important; right: auto !important; }
+        .bp-widget-widget { left: 80px !important; right: auto !important; }
+        .bp-widget-side { left: 80px !important; right: auto !important; }
     </style>
     """
     
