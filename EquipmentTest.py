@@ -59,19 +59,27 @@ st.markdown("""
         border-bottom: 1px solid #f0f0f0;
     }
     
-    /* --- FLOATING CHATBOT CONTAINER FIX --- */
-    /* 
-       We make the iframe cover the WHOLE screen but let clicks pass through.
-    */
-    iframe[height="800"] {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
-        z-index: 999999 !important;
-        border: none !important;
-        pointer-events: none !important; /* Allow clicking on Streamlit buttons behind it */
+    /* --- FLOATING HELPER MESSAGE CSS --- */
+    .floating-message {
+        position: fixed;
+        bottom: 90px; /* Position it right above the chatbot icon */
+        right: 25px;
+        background-color: #ffffff;
+        color: #31333F;
+        padding: 12px 20px;
+        border-radius: 15px 15px 5px 15px; /* Speech bubble shape */
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 9999; /* Ensure it sits on top */
+        font-family: sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        border: 1px solid #e0e0e0;
+        animation: fadeIn 1s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
     </style>
     """, unsafe_allow_html=True)
@@ -274,73 +282,18 @@ if selected_page == "View Equipment":
             except Exception as e:
                 st.error(f"Database Error: {e}")
 
-    # --- CHATBOT WITH CUSTOM LAUNCHER BUTTON ---
+    # --- CHATBOT & FLOATING HELP TEXT ---
+    
+    # 1. This DIV creates the speech bubble text "Need Help?" floating at bottom right
+    st.markdown('<div class="floating-message">💬 <b>Need Help?</b><br>Support Assistant</div>', unsafe_allow_html=True)
+    
+    # 2. This loads the Botpress Chatbot
     chatbot_code = """
     <div id="chatbot-container"></div>
-    
-    <!-- 1. CUSTOM LAUNCHER BUTTON (The Text IS the Button) -->
-    <div id="custom-chat-trigger" onclick="toggleChat()">
-        <span style="font-size: 20px;">💬</span>
-        <span>Need Help? Support Assistant</span>
-    </div>
-
-    <!-- 2. Botpress Scripts -->
     <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
     <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
-    
-    <style>
-        /* Transparent body for the full screen iframe */
-        body { background: transparent !important; }
-
-        /* HIDE the default Botpress round red button */
-        .bp-widget-widget {
-            display: none !important;
-        }
-
-        /* STYLE our Custom Button */
-        #custom-chat-trigger {
-            position: fixed;
-            bottom: 25px;
-            right: 25px;
-            background-color: #ffffff;
-            color: #31333F;
-            border: 1px solid #dcdcdc;
-            border-radius: 30px; /* Pill Shape */
-            padding: 12px 24px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            cursor: pointer;
-            z-index: 99999; /* Top level */
-            font-family: sans-serif;
-            font-size: 15px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: all 0.3s ease;
-            pointer-events: auto !important; /* Make this clickable */
-        }
-        
-        #custom-chat-trigger:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
-            background-color: #f8f9fa;
-        }
-        
-        /* Ensure the actual chat window is clickable when open */
-        .bp-widget-side, .bp-widget-webchat {
-            pointer-events: auto !important;
-        }
-    </style>
-
-    <script>
-        function toggleChat() {
-            // Send command to Botpress to open/close
-            window.botpressWebChat.sendEvent({ type: 'toggle' });
-        }
-    </script>
     """
-    # Use height=800 to match the Python CSS for full screen overlay
-    components.html(chatbot_code, height=800)
+    components.html(chatbot_code, height=600)
 
 
 # === PAGE: LOAN & RETURN ===
