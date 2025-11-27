@@ -289,12 +289,11 @@ if selected_page == "View Equipment":
     
     # 2. This loads the Botpress Chatbot
     chatbot_code = """
-    <div id="chatbot-container">Basic Test</div>
+    <div id="chatbot-container"></div>
     <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
     <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
     """
-
-    components.html(chatbot_code, unsafe_allow_html=True)
+    components.html(chatbot_code, height=600)
 
 
 # === PAGE: LOAN & RETURN ===
