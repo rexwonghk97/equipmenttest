@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import streamlit.components.v1 as components
+import plotly.express as px  # REQUIRED for the Pie Chart
 from datetime import date
 
 # --- 1. CONFIGURATION ---
@@ -25,32 +26,30 @@ st.markdown("""
         background-color: #ffffff;
         border: 1px solid #e0e0e0;
         border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        text-align: center;
-        transition: transform 0.2s;
+        padding: 15px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
     }
-    .metric-card-container:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+    .metric-info {
+        text-align: left;
     }
     .metric-title {
         color: #6c757d;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         font-weight: 600;
         text-transform: uppercase;
-        margin-bottom: 5px;
     }
     .metric-value {
         color: #212529;
-        font-size: 2rem;
+        font-size: 1.8rem;
         font-weight: 700;
     }
     .metric-icon {
-        font-size: 1.5rem;
-        margin-bottom: 10px;
-        display: inline-block;
-        padding: 10px;
+        font-size: 2rem;
+        padding: 12px;
         border-radius: 50%;
     }
     
@@ -134,14 +133,16 @@ selected_page = st.sidebar.radio("Navigation", page_options)
 
 
 # --- HELPER FUNCTION FOR METRIC CARDS ---
-def display_metric_card(title, value, icon, color_bg):
+def display_metric_card_horizontal(title, value, icon, color_bg):
     st.markdown(f"""
     <div class="metric-card-container">
+        <div class="metric-info">
+            <div class="metric-title">{title}</div>
+            <div class="metric-value">{value}</div>
+        </div>
         <div class="metric-icon" style="background-color: {color_bg};">
             {icon}
         </div>
-        <div class="metric-title">{title}</div>
-        <div class="metric-value">{value}</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -155,27 +156,56 @@ if selected_page == "View Equipment":
     with get_database_connection() as conn:
         types = fetch_types(conn)
         
-        # 1. Dashboard Metrics
+        # --- DASHBOARD SECTION (PIE CHART + METRICS) ---
         try:
             df_all = fetch_equipment_data(conn)
             total = len(df_all)
             avail = len(df_all[df_all['Availability'] == 'Yes'])
             loaned = len(df_all[df_all['Availability'] == 'No'])
+            
+            # Create two columns: Chart (Left) and Metrics (Right)
+            chart_col, metrics_col = st.columns([1.5, 1])
+            
+            with chart_col:
+                # Prepare data for Plotly
+                chart_data = pd.DataFrame({
+                    "Status": ["Available", "Loaned Out"],
+                    "Count": [avail, loaned]
+                })
+                
+                # Create Donut Chart
+                fig = px.pie(
+                    chart_data, 
+                    values='Count', 
+                    names='Status', 
+                    hole=0.6, # Makes it a Donut
+                    color='Status',
+                    color_discrete_map={'Available':'#66bb6a', 'Loaned Out':'#ffa726'}
+                )
+                
+                # Customize Layout: Put Total in the Center
+                fig.update_layout(
+                    showlegend=True,
+                    legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
+                    margin=dict(t=0, b=30, l=0, r=0),
+                    height=300,
+                    annotations=[dict(text=f"{total}<br>Assets", x=0.5, y=0.5, font_size=24, showarrow=False, font_weight='bold')]
+                )
+                st.plotly_chart(fig, use_container_width=True)
 
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                display_metric_card("Total Assets", total, "📦", "#e3f2fd")
-            with c2:
-                display_metric_card("Available", avail, "✅", "#e8f5e9")
-            with c3:
-                display_metric_card("Loaned Out", loaned, "⏳", "#fff3e0")
+            with metrics_col:
+                st.write("") # small spacing aligner
+                display_metric_card_horizontal("Total Assets", total, "📦", "#e3f2fd")
+                display_metric_card_horizontal("Available Now", avail, "✅", "#e8f5e9")
+                display_metric_card_horizontal("On Loan", loaned, "⏳", "#fff3e0")
 
-        except Exception:
+        except Exception as e:
             st.warning("Could not load metrics. Database might be empty.")
+            st.error(e)
 
-        st.write("") 
+        st.write("") # Spacer
         
-        # 2. Filters & Dataframe
+        # --- FILTERS & DATAFRAME ---
         with st.container(border=True):
             col1, col2 = st.columns([1, 1])
             with col1:
@@ -205,27 +235,17 @@ if selected_page == "View Equipment":
             except Exception as e:
                 st.error(f"Database Error: {e}")
 
-    # 3. Floating Chatbot (No Expander)
-    # We use a custom HTML block with fixed positioning to "Float" the chatbot 
-    # at the bottom left of the screen.
+    # --- FLOATING CHATBOT ---
     chatbot_code = """
     <div id="chatbot-container"></div>
-    <!-- Load Botpress Scripts -->
     <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
     <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
-    
-    <!-- Custom CSS to Force Left Positioning inside the iframe -->
     <style>
-        /* This moves the chatbot bubble/window to the left side */
-        .bp-widget-widget { left: 40px !important; right: auto !important; }
-        .bp-widget-side { left: 40px !important; right: auto !important; }
+        .bp-widget-widget { left: 20px !important; right: auto !important; bottom: 20px !important; }
+        .bp-widget-side { left: 20px !important; right: auto !important; bottom: 20px !important;}
     </style>
     """
-    
-    # We render this in an HTML component. 
-    # Note: Streamlit puts this in an iframe at the bottom of the page flow.
-    # To use it, the user scrolls to the bottom.
-    components.html(chatbot_code, height=600)
+    components.html(chatbot_code, height=700)
 
 
 # === PAGE: LOAN & RETURN ===
