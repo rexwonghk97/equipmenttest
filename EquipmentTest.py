@@ -60,16 +60,16 @@ st.markdown("""
     }
     
     /* --- FLOATING CHATBOT FIX --- */
-    /* This targets the iframe created by st.components.v1.html */
-    iframe[title="streamlit.components.v1.components.html"] {
+    /* We target the iframe by its specific height attribute (650px) */
+    iframe[height="650"] {
         position: fixed !important;
         bottom: 20px !important;
         left: 20px !important;
-        width: 350px !important;  /* Width of the chat window */
-        height: 600px !important; /* Height of the open chat window */
-        z-index: 1000000 !important;
+        width: 400px !important;  /* Width of the chat window */
+        z-index: 999999 !important; /* Ensure it sits on top of everything */
         border: none !important;
         background: transparent !important;
+        pointer-events: none; /* Let clicks pass through the transparent parts */
     }
     </style>
     """, unsafe_allow_html=True)
@@ -253,19 +253,20 @@ if selected_page == "View Equipment":
                 st.error(f"Database Error: {e}")
 
     # --- FLOATING CHATBOT ---
-    # Note: The 'height' here creates the internal space, 
-    # but the CSS at the top of the file forces the iframe to fixed position.
     chatbot_code = """
     <div id="chatbot-container"></div>
     <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
     <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
     <style>
-        /* Position inside the iframe */
-        .bp-widget-widget { left: 0px !important; right: auto !important; bottom: 0px !important; }
-        .bp-widget-side { left: 0px !important; right: auto !important; bottom: 0px !important;}
+        /* This CSS styles the HTML elements INSIDE the iframe */
+        body { background: transparent !important; }
+        /* Position the chat bubble to the bottom left inside the iframe area */
+        .bp-widget-widget { left: 0px !important; right: auto !important; bottom: 0px !important; pointer-events: auto !important;}
+        .bp-widget-side { left: 0px !important; right: auto !important; bottom: 0px !important; pointer-events: auto !important;}
     </style>
     """
-    components.html(chatbot_code, height=600)
+    # NOTE: height=650 matches the CSS selector at the top of the file
+    components.html(chatbot_code, height=650)
 
 
 # === PAGE: LOAN & RETURN ===
