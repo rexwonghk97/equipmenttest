@@ -155,7 +155,7 @@ if selected_page == "View Equipment":
     with get_database_connection() as conn:
         types = fetch_types(conn)
         
-        # 1. Dashboard Metrics (Custom HTML/CSS)
+        # 1. Dashboard Metrics
         try:
             df_all = fetch_equipment_data(conn)
             total = len(df_all)
@@ -164,16 +164,16 @@ if selected_page == "View Equipment":
 
             c1, c2, c3 = st.columns(3)
             with c1:
-                display_metric_card("Total Assets", total, "📦", "#e3f2fd") # Blue bg
+                display_metric_card("Total Assets", total, "📦", "#e3f2fd")
             with c2:
-                display_metric_card("Available", avail, "✅", "#e8f5e9") # Green bg
+                display_metric_card("Available", avail, "✅", "#e8f5e9")
             with c3:
-                display_metric_card("Loaned Out", loaned, "⏳", "#fff3e0") # Orange bg
+                display_metric_card("Loaned Out", loaned, "⏳", "#fff3e0")
 
         except Exception:
             st.warning("Could not load metrics. Database might be empty.")
 
-        st.write("") # Spacer
+        st.write("") 
         
         # 2. Filters & Dataframe
         with st.container(border=True):
@@ -196,15 +196,8 @@ if selected_page == "View Equipment":
                         use_container_width=True,
                         hide_index=True,
                         column_config={
-                            "Availability": st.column_config.TextColumn(
-                                "Status",
-                                width="medium",
-                                validate="^(Yes|No)$"
-                            ),
-                            "Loan_Start": st.column_config.DateColumn(
-                                "Loaned Since",
-                                format="YYYY-MM-DD"
-                            ),
+                            "Availability": st.column_config.TextColumn("Status", width="medium", validate="^(Yes|No)$"),
+                            "Loan_Start": st.column_config.DateColumn("Loaned Since", format="YYYY-MM-DD"),
                             "ID": st.column_config.TextColumn("ID", width="small"),
                             "Qty": st.column_config.NumberColumn("Qty", width="small")
                         }
@@ -212,15 +205,27 @@ if selected_page == "View Equipment":
             except Exception as e:
                 st.error(f"Database Error: {e}")
 
-    # 3. Chatbot
-    st.divider()
-    with st.expander("💬 Support Assistant"):
-        chatbot_code = """
-        <div id="chatbot-container"></div>
-        <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
-        <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
-        """
-        components.html(chatbot_code, height=500)
+    # 3. Floating Chatbot (No Expander)
+    # We use a custom HTML block with fixed positioning to "Float" the chatbot 
+    # at the bottom left of the screen.
+    chatbot_code = """
+    <div id="chatbot-container"></div>
+    <!-- Load Botpress Scripts -->
+    <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
+    <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
+    
+    <!-- Custom CSS to Force Left Positioning inside the iframe -->
+    <style>
+        /* This moves the chatbot bubble/window to the left side */
+        .bp-widget-widget { left: 20px !important; right: auto !important; }
+        .bp-widget-side { left: 20px !important; right: auto !important; }
+    </style>
+    """
+    
+    # We render this in an HTML component. 
+    # Note: Streamlit puts this in an iframe at the bottom of the page flow.
+    # To use it, the user scrolls to the bottom.
+    components.html(chatbot_code, height=700)
 
 
 # === PAGE: LOAN & RETURN ===
@@ -234,8 +239,6 @@ elif selected_page == "Loan & Return":
         # --- LOAN TAB ---
         with tab_loan:
             st.subheader("Process New Loan")
-            
-            # Filter Section
             c_fil, c_date = st.columns([1, 1])
             with c_fil:
                 loan_type_filter = st.selectbox("Filter by Type", ['ALL'] + types, key="loan_type")
@@ -249,41 +252,30 @@ elif selected_page == "Loan & Return":
                     st.markdown("### Select Items to Loan")
                     st.caption("Check the box on the left to select an item.")
                     
-                    # Header Row
+                    # Headers
                     h1, h2, h3, h4 = st.columns([0.5, 2.5, 2, 2])
                     h1.markdown("**Select**")
-                    h2.markdown("**Equipment Name & ID**")
-                    h3.markdown("**Details (Brand/Type)**")
+                    h2.markdown("**Equipment**")
+                    h3.markdown("**Details**")
                     h4.markdown("**Status**")
                     st.divider()
 
-                    # Scrollable List of Detailed Items
                     selected_ids = []
                     with st.container(height=400):
                         for index, row in available_data.iterrows():
                             c1, c2, c3, c4 = st.columns([0.5, 2.5, 2, 2])
-                            
-                            # Col 1: Checkbox
                             with c1:
                                 is_checked = st.checkbox("", key=f"loan_chk_{row['ID']}")
-                                if is_checked:
-                                    selected_ids.append(row['ID'])
-                            
-                            # Col 2: Name & ID
+                                if is_checked: selected_ids.append(row['ID'])
                             with c2:
                                 st.markdown(f"**{row['Name']}**")
                                 st.caption(f"ID: {row['ID']}")
-                            
-                            # Col 3: Brand & Type
                             with c3:
                                 st.text(f"Brand: {row['Brand']}")
                                 st.text(f"Type:  {row['Type']}")
-                            
-                            # Col 4: Qty & Date
                             with c4:
                                 st.markdown(f"Qty: **{row['Qty']}**")
                                 st.caption(f"Created: {row['Created_Date']}")
-                            
                             st.markdown("<hr style='margin: 5px 0; opacity: 0.3;'>", unsafe_allow_html=True)
 
                     st.write("")
@@ -293,61 +285,49 @@ elif selected_page == "Loan & Return":
                         if selected_ids:
                             try:
                                 for equipment_id in selected_ids:
-                                    conn.execute(
-                                        "UPDATE Loan_History SET Availability = 'No', Loan_From = ? WHERE Equipment_ID = ?", 
-                                        (loan_date, equipment_id)
-                                    )
+                                    conn.execute("UPDATE Loan_History SET Availability = 'No', Loan_From = ? WHERE Equipment_ID = ?", (loan_date, equipment_id))
                                 conn.commit()
                                 st.toast(f"Success! Loaned {len(selected_ids)} items.", icon="✅")
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"Error: {e}")
                         else:
-                            st.warning("Please select at least one item.")
+                            st.warning("Select at least one item.")
             else:
-                st.info("No items currently available.")
+                st.info("No items available.")
 
         # --- RETURN TAB ---
         with tab_return:
             st.subheader("Process Return")
-            
             return_type_filter = st.selectbox("Filter by Type", ['ALL'] + types, key="return_type")
             unavailable_data = fetch_equipment_data(conn, 'No', return_type_filter)
 
             if not unavailable_data.empty:
                 with st.form("return_form"):
                     st.markdown("### Select Items to Return")
-                    
-                    # Header Row
                     h1, h2, h3, h4 = st.columns([0.5, 2.5, 2, 2])
                     h1.markdown("**Select**")
-                    h2.markdown("**Equipment Name & ID**")
+                    h2.markdown("**Equipment**")
                     h3.markdown("**Details**")
-                    h4.markdown("**Loan Details**")
+                    h4.markdown("**Loan Info**")
                     st.divider()
 
                     selected_return_ids = []
                     with st.container(height=400):
                         for index, row in unavailable_data.iterrows():
                             c1, c2, c3, c4 = st.columns([0.5, 2.5, 2, 2])
-                            
                             with c1:
                                 is_checked = st.checkbox("", key=f"ret_chk_{row['ID']}")
-                                if is_checked:
-                                    selected_return_ids.append(row['ID'])
-                            
+                                if is_checked: selected_return_ids.append(row['ID'])
                             with c2:
                                 st.markdown(f"**{row['Name']}**")
                                 st.caption(f"ID: {row['ID']}")
-                            
                             with c3:
                                 st.text(f"Brand: {row['Brand']}")
                                 st.text(f"Type:  {row['Type']}")
-                            
                             with c4:
-                                st.markdown(f"📅 Loaned: **{row['Loan_Start']}**")
+                                st.markdown(f"📅 **{row['Loan_Start']}**")
                                 st.caption("Status: On Loan")
-
                             st.markdown("<hr style='margin: 5px 0; opacity: 0.3;'>", unsafe_allow_html=True)
 
                     st.write("")
@@ -357,16 +337,13 @@ elif selected_page == "Loan & Return":
                         if selected_return_ids:
                             try:
                                 for equipment_id in selected_return_ids:
-                                    conn.execute(
-                                        "UPDATE Loan_History SET Availability = 'Yes', Loan_From = NULL WHERE Equipment_ID = ?",
-                                        (equipment_id,)
-                                    )
+                                    conn.execute("UPDATE Loan_History SET Availability = 'Yes', Loan_From = NULL WHERE Equipment_ID = ?", (equipment_id,))
                                 conn.commit()
                                 st.toast(f"Success! Returned {len(selected_return_ids)} items.", icon="✅")
                                 st.rerun()
                             except Exception as e:
                                 st.error(f"Error: {e}")
                         else:
-                            st.warning("Please select at least one item.")
+                            st.warning("Select at least one item.")
             else:
-                st.info("No items currently loaned out.")
+                st.info("No items loaned out.")
