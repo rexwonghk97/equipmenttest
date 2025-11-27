@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import streamlit.components.v1 as components
-import altair as alt
+import altair as alt  # Built-in to Streamlit
 from datetime import date
 
 # --- 1. CONFIGURATION ---
@@ -12,35 +12,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# --- 2. DATABASE FUNCTIONS ---
-def get_database_connection():
-    return sqlite3.connect('Test_equipment_database.db')
-
-# --- 3. [NEW] AI DATA ACCESS ENDPOINT ---
-# If the URL is accessed with ?api=true, return raw JSON and stop.
-# The AI will use this URL.
-if st.query_params.get("api") == "true":
-    try:
-        conn = get_database_connection()
-        # Fetch simple availability data for the AI
-        query = """
-        SELECT 
-            Name, 
-            Brand, 
-            Type,
-            Availability 
-        FROM Equipment_List 
-        JOIN Loan_History ON Equipment_List.Equipment_ID = Loan_History.Equipment_ID
-        """
-        df = pd.read_sql_query(query, conn)
-        # Convert to JSON and print
-        st.json(df.to_dict(orient="records"))
-    except Exception as e:
-        st.json({"error": str(e)})
-    
-    # STOP here so the AI doesn't get the UI/HTML
-    st.stop()
 
 # --- 2. CUSTOM CSS ---
 st.markdown("""
@@ -86,22 +57,6 @@ st.markdown("""
     .item-row {
         padding: 10px 0;
         border-bottom: 1px solid #f0f0f0;
-    }
-    
-    /* --- FLOATING CHATBOT CONTAINER FIX --- */
-    /* 
-       This targets the specific iframe by height=800. 
-       We make the iframe cover the WHOLE screen but let clicks pass through (pointer-events: none).
-    */
-    iframe[height="800"] {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100vw !important;  /* Full Viewport Width */
-        height: 100vh !important; /* Full Viewport Height */
-        z-index: 999999 !important;
-        border: none !important;
-        pointer-events: none !important; /* Allow clicking on Streamlit buttons behind it */
     }
     </style>
     """, unsafe_allow_html=True)
@@ -151,30 +106,28 @@ def fetch_equipment_data(conn, availability='All', equipment_type='ALL'):
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 
+# --- 5. SIDEBAR NAVIGATION ---
 st.sidebar.title("🛠️ Lab Manager")
 
-# Define pages available to EVERYONE
-page_options = ["View Equipment"]
-
-# Login Logic (Only needed for Loan/Return)
 if not st.session_state.authenticated:
-    with st.sidebar.expander("🔐 Staff Login (For Loan/Return)", expanded=False):
+    with st.sidebar.expander("🔐 Staff Login", expanded=True):
         with st.form("login_form"):
-            name = st.selectbox("Name", ["Tobby", "Rex"])
+            name = st.selectbox("Select Name", ["Tobby", "Rex"], index=None, placeholder="Choose user...")
             password = st.text_input("Password", type="password")
-            if st.form_submit_button("Login"):
-                if password == "0000":
-                    st.session_state.authenticated = True
-                    st.rerun()
-                else:
-                    st.error("Invalid")
+            submitted = st.form_submit_button("Login", use_container_width=True)
+            if submitted and name and password == "0000":
+                st.session_state.authenticated = True
+                st.toast(f"Welcome back, {name}!", icon="👋")
+                st.rerun()
+            elif submitted:
+                st.error("Invalid credentials.")
+    page_options = ["View Equipment"]
 else:
-    # If logged in, add the extra page
-    page_options = ["View Equipment", "Loan & Return"]
-    st.sidebar.success("Staff Access Active")
-    if st.sidebar.button("Logout"):
+    st.sidebar.success("Logged in as Staff")
+    if st.sidebar.button("Logout", icon="🔒"):
         st.session_state.authenticated = False
         st.rerun()
+    page_options = ["View Equipment", "Loan & Return"]
 
 selected_page = st.sidebar.radio("Navigation", page_options)
 
@@ -245,197 +198,4 @@ if selected_page == "View Equipment":
                 st.altair_chart(pie + text + text_label, use_container_width=True)
 
             with metrics_col:
-                st.write("") 
-                display_metric_card_horizontal("Total Assets", total, "📦", "#e3f2fd")
-                display_metric_card_horizontal("Available Now", avail, "✅", "#e8f5e9")
-                display_metric_card_horizontal("On Loan", loaned, "⏳", "#fff3e0")
-
-        except Exception as e:
-            st.warning("Could not load metrics. Database might be empty.")
-            st.error(e)
-
-        st.write("") 
-        
-        # --- FILTERS & DATAFRAME ---
-        with st.container(border=True):
-            col1, col2 = st.columns([1, 1])
-            with col1:
-                selected_type = st.selectbox('Filter by Type', ['ALL'] + types)
-            with col2:
-                selected_availability = st.selectbox('Filter by Status', ["All", "Available Only", "Loaned Out"])
-            
-            avail_map = {"All": "All", "Available Only": "Yes", "Loaned Out": "No"}
-            
-            try:
-                filtered_data = fetch_equipment_data(conn, avail_map[selected_availability], selected_type)
-                
-                if filtered_data.empty:
-                    st.info("No equipment found matching these criteria.")
-                else:
-                    st.dataframe(
-                        filtered_data,
-                        use_container_width=True,
-                        hide_index=True,
-                        column_config={
-                            "Availability": st.column_config.TextColumn("Status", width="medium", validate="^(Yes|No)$"),
-                            "Loan_Start": st.column_config.DateColumn("Loaned Since", format="YYYY-MM-DD"),
-                            "ID": st.column_config.TextColumn("ID", width="small"),
-                            "Qty": st.column_config.NumberColumn("Qty", width="small")
-                        }
-                    )
-            except Exception as e:
-                st.error(f"Database Error: {e}")
-
-    # --- FLOATING CHATBOT (FULL SCREEN OVERLAY METHOD) ---
-    chatbot_code = """
-    <div id="chatbot-container"></div>
-    <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
-    <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
-    
-    <style>
-        /* 1. Make the background transparent so we can see the app behind */
-        body { background: transparent !important; }
-
-        /* 2. Re-enable clicking on the chat bubble and window */
-        /* Note: We used pointer-events: none on the iframe in Python, 
-           so we must set pointer-events: auto here for the specific chat elements */
-        
-        #chatbot-container, .bp-widget-widget, .bp-widget-side, .bp-widget-webchat {
-            pointer-events: auto !important;
-        }
-
-        /* 3. Position the Chatbot to BOTTOM LEFT */
-        .bp-widget-widget { 
-            left: 20px !important; 
-            right: auto !important; 
-            bottom: 20px !important; 
-        }
-        .bp-widget-side { 
-            left: 20px !important; 
-            right: auto !important; 
-            bottom: 20px !important; 
-        }
-    </style>
-    """
-    # Use height=800 to match the CSS selector at the top of the file
-    components.html(chatbot_code, height=800)
-
-
-# === PAGE: LOAN & RETURN ===
-elif selected_page == "Loan & Return":
-    st.title("📑 Equipment Loan & Return")
-    
-    with get_database_connection() as conn:
-        types = fetch_types(conn)
-        tab_loan, tab_return = st.tabs(["📤 Loan Out", "📥 Return Item"])
-
-        # --- LOAN TAB ---
-        with tab_loan:
-            st.subheader("Process New Loan")
-            c_fil, c_date = st.columns([1, 1])
-            with c_fil:
-                loan_type_filter = st.selectbox("Filter by Type", ['ALL'] + types, key="loan_type")
-            with c_date:
-                loan_date = st.date_input("Loan Start Date", value=date.today())
-
-            available_data = fetch_equipment_data(conn, 'Yes', loan_type_filter)
-
-            if not available_data.empty:
-                with st.form("loan_form"):
-                    st.markdown("### Select Items to Loan")
-                    st.caption("Check the box on the left to select an item.")
-                    
-                    h1, h2, h3, h4 = st.columns([0.5, 2.5, 2, 2])
-                    h1.markdown("**Select**")
-                    h2.markdown("**Equipment**")
-                    h3.markdown("**Details**")
-                    h4.markdown("**Status**")
-                    st.divider()
-
-                    selected_ids = []
-                    with st.container(height=400):
-                        for index, row in available_data.iterrows():
-                            c1, c2, c3, c4 = st.columns([0.5, 2.5, 2, 2])
-                            with c1:
-                                is_checked = st.checkbox("", key=f"loan_chk_{row['ID']}")
-                                if is_checked: selected_ids.append(row['ID'])
-                            with c2:
-                                st.markdown(f"**{row['Name']}**")
-                                st.caption(f"ID: {row['ID']}")
-                            with c3:
-                                st.text(f"Brand: {row['Brand']}")
-                                st.text(f"Type:  {row['Type']}")
-                            with c4:
-                                st.markdown(f"Qty: **{row['Qty']}**")
-                                st.caption(f"Created: {row['Created_Date']}")
-                            st.markdown("<hr style='margin: 5px 0; opacity: 0.3;'>", unsafe_allow_html=True)
-
-                    st.write("")
-                    submitted_loan = st.form_submit_button("Confirm Loan ✅", type="primary")
-
-                    if submitted_loan:
-                        if selected_ids:
-                            try:
-                                for equipment_id in selected_ids:
-                                    conn.execute("UPDATE Loan_History SET Availability = 'No', Loan_From = ? WHERE Equipment_ID = ?", (loan_date, equipment_id))
-                                conn.commit()
-                                st.toast(f"Success! Loaned {len(selected_ids)} items.", icon="✅")
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"Error: {e}")
-                        else:
-                            st.warning("Select at least one item.")
-            else:
-                st.info("No items available.")
-
-        # --- RETURN TAB ---
-        with tab_return:
-            st.subheader("Process Return")
-            return_type_filter = st.selectbox("Filter by Type", ['ALL'] + types, key="return_type")
-            unavailable_data = fetch_equipment_data(conn, 'No', return_type_filter)
-
-            if not unavailable_data.empty:
-                with st.form("return_form"):
-                    st.markdown("### Select Items to Return")
-                    h1, h2, h3, h4 = st.columns([0.5, 2.5, 2, 2])
-                    h1.markdown("**Select**")
-                    h2.markdown("**Equipment**")
-                    h3.markdown("**Details**")
-                    h4.markdown("**Loan Info**")
-                    st.divider()
-
-                    selected_return_ids = []
-                    with st.container(height=400):
-                        for index, row in unavailable_data.iterrows():
-                            c1, c2, c3, c4 = st.columns([0.5, 2.5, 2, 2])
-                            with c1:
-                                is_checked = st.checkbox("", key=f"ret_chk_{row['ID']}")
-                                if is_checked: selected_return_ids.append(row['ID'])
-                            with c2:
-                                st.markdown(f"**{row['Name']}**")
-                                st.caption(f"ID: {row['ID']}")
-                            with c3:
-                                st.text(f"Brand: {row['Brand']}")
-                                st.text(f"Type:  {row['Type']}")
-                            with c4:
-                                st.markdown(f"📅 **{row['Loan_Start']}**")
-                                st.caption("Status: On Loan")
-                            st.markdown("<hr style='margin: 5px 0; opacity: 0.3;'>", unsafe_allow_html=True)
-
-                    st.write("")
-                    submitted_return = st.form_submit_button("Confirm Return 📥", type="primary")
-
-                    if submitted_return:
-                        if selected_return_ids:
-                            try:
-                                for equipment_id in selected_return_ids:
-                                    conn.execute("UPDATE Loan_History SET Availability = 'Yes', Loan_From = NULL WHERE Equipment_ID = ?", (equipment_id,))
-                                conn.commit()
-                                st.toast(f"Success! Returned {len(selected_return_ids)} items.", icon="✅")
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"Error: {e}")
-                        else:
-                            st.warning("Select at least one item.")
-            else:
-                st.info("No items loaned out.")
+                st.w
