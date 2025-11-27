@@ -266,7 +266,7 @@ if selected_page == "View Equipment":
     </style>
     """
     # NOTE: height=650 matches the CSS selector at the top of the file
-    components.html(chatbot_code, height=650)
+    components.html(chatbot_code, height=500)
 
 
 # === PAGE: LOAN & RETURN ===
