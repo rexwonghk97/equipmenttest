@@ -59,17 +59,20 @@ st.markdown("""
         border-bottom: 1px solid #f0f0f0;
     }
     
-    /* --- FLOATING CHATBOT FIX --- */
-    /* We target the iframe by its specific height attribute (650px) */
-    iframe[height="650"] {
+    /* --- FLOATING CHATBOT CONTAINER FIX --- */
+    /* 
+       This targets the specific iframe by height=800. 
+       We make the iframe cover the WHOLE screen but let clicks pass through (pointer-events: none).
+    */
+    iframe[height="800"] {
         position: fixed !important;
-        bottom: 20px !important;
-        left: 20px !important;
-        width: 400px !important;  /* Width of the chat window */
-        z-index: 999999 !important; /* Ensure it sits on top of everything */
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;  /* Full Viewport Width */
+        height: 100vh !important; /* Full Viewport Height */
+        z-index: 999999 !important;
         border: none !important;
-        background: transparent !important;
-        pointer-events: none; /* Let clicks pass through the transparent parts */
+        pointer-events: none !important; /* Allow clicking on Streamlit buttons behind it */
     }
     </style>
     """, unsafe_allow_html=True)
@@ -252,21 +255,39 @@ if selected_page == "View Equipment":
             except Exception as e:
                 st.error(f"Database Error: {e}")
 
-    # --- FLOATING CHATBOT ---
+    # --- FLOATING CHATBOT (FULL SCREEN OVERLAY METHOD) ---
     chatbot_code = """
     <div id="chatbot-container"></div>
     <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
     <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
+    
     <style>
-        /* This CSS styles the HTML elements INSIDE the iframe */
+        /* 1. Make the background transparent so we can see the app behind */
         body { background: transparent !important; }
-        /* Position the chat bubble to the bottom left inside the iframe area */
-        .bp-widget-widget { left: 0px !important; right: auto !important; bottom: 0px !important; pointer-events: auto !important;}
-        .bp-widget-side { left: 0px !important; right: auto !important; bottom: 0px !important; pointer-events: auto !important;}
+
+        /* 2. Re-enable clicking on the chat bubble and window */
+        /* Note: We used pointer-events: none on the iframe in Python, 
+           so we must set pointer-events: auto here for the specific chat elements */
+        
+        #chatbot-container, .bp-widget-widget, .bp-widget-side, .bp-widget-webchat {
+            pointer-events: auto !important;
+        }
+
+        /* 3. Position the Chatbot to BOTTOM LEFT */
+        .bp-widget-widget { 
+            left: 20px !important; 
+            right: auto !important; 
+            bottom: 20px !important; 
+        }
+        .bp-widget-side { 
+            left: 20px !important; 
+            right: auto !important; 
+            bottom: 20px !important; 
+        }
     </style>
     """
-    # NOTE: height=650 matches the CSS selector at the top of the file
-    components.html(chatbot_code, height=650)
+    # Use height=800 to match the CSS selector at the top of the file
+    components.html(chatbot_code, height=800)
 
 
 # === PAGE: LOAN & RETURN ===
