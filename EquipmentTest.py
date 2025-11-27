@@ -3,13 +3,14 @@ import pandas as pd
 import sqlite3
 import streamlit.components.v1 as components
 
-chatbot_scripts = """
+chatbot_code = """
+<div id="chatbot-container"></div>
 <script src="https://cdn.botpress.cloud/webchat/v3.3/inject.js" defer></script>
 <script src="https://files.bpcontent.cloud/2025/11/27/06/20251127065604-HBKZN89E.js" defer></script>
 """
 
-# Render the chatbot scripts
-components.html(chatbot_scripts, height=0)  # height is set to 0 since no visible content is produced from these scripts
+# Render the chatbot code
+components.html(chatbot_code, height=600)  # Adjust height as necessary
 
 message = st.chat_message("ai")  # 或者寫 "ai"
 # message = st.chat_message("assistant", avatar="🦖")  # 自訂頭像
