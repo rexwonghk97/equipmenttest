@@ -3,14 +3,21 @@ import pandas as pd
 import sqlite3
 import streamlit.components.v1 as components
 
-  src="https://cdn.botpress.cloud/webchat/v3.3/inject.js"></script"
-  botId="d5d6e7bb-5738-411e-b57d-a316050cef79"
+chatbot_script = """
+<script
+  src="https://cdn.botpress.cloud/webchat/v1/inject.js"
+  botId="YOUR_BOT_ID"
   messagingUrl="https://messaging.botpress.cloud"
-  webchatConfig="{
-    'botName': 'ADA Assistant',
-    'avatarUrl': 'https://files.bpcontent.cloud/2025/11/27/06/20251127065919-67WD88Y4.png',
-    'stylesheet': 'https://yourdomain.com/style.css'
-  }"
+  webchatConfig='{
+    "botName": "Help Assistant",
+    "avatarUrl": "https://yourdomain.com/avatar.png",
+    "stylesheet": "https://yourdomain.com/style.css"
+  }'
+></script>
+"""
+
+# Render the chatbot script
+components.html(chatbot_script, height=600)  # Adjust height as needed
 
 
 message = st.chat_message("ai")  # 或者寫 "ai"
