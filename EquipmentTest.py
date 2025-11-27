@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import streamlit.components.v1 as components
-import altair as alt  # Built-in to Streamlit
+import altair as alt
 from datetime import date
 
 # --- 1. CONFIGURATION ---
@@ -12,6 +12,35 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# --- 2. DATABASE FUNCTIONS ---
+def get_database_connection():
+    return sqlite3.connect('Test_equipment_database.db')
+
+# --- 3. [NEW] AI DATA ACCESS ENDPOINT ---
+# If the URL is accessed with ?api=true, return raw JSON and stop.
+# The AI will use this URL.
+if st.query_params.get("api") == "true":
+    try:
+        conn = get_database_connection()
+        # Fetch simple availability data for the AI
+        query = """
+        SELECT 
+            Name, 
+            Brand, 
+            Type,
+            Availability 
+        FROM Equipment_List 
+        JOIN Loan_History ON Equipment_List.Equipment_ID = Loan_History.Equipment_ID
+        """
+        df = pd.read_sql_query(query, conn)
+        # Convert to JSON and print
+        st.json(df.to_dict(orient="records"))
+    except Exception as e:
+        st.json({"error": str(e)})
+    
+    # STOP here so the AI doesn't get the UI/HTML
+    st.stop()
 
 # --- 2. CUSTOM CSS ---
 st.markdown("""
@@ -122,28 +151,30 @@ def fetch_equipment_data(conn, availability='All', equipment_type='ALL'):
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 
-# --- 5. SIDEBAR NAVIGATION ---
 st.sidebar.title("🛠️ Lab Manager")
 
+# Define pages available to EVERYONE
+page_options = ["View Equipment"]
+
+# Login Logic (Only needed for Loan/Return)
 if not st.session_state.authenticated:
-    with st.sidebar.expander("🔐 Staff Login", expanded=True):
+    with st.sidebar.expander("🔐 Staff Login (For Loan/Return)", expanded=False):
         with st.form("login_form"):
-            name = st.selectbox("Select Name", ["Tobby", "Rex"], index=None, placeholder="Choose user...")
+            name = st.selectbox("Name", ["Tobby", "Rex"])
             password = st.text_input("Password", type="password")
-            submitted = st.form_submit_button("Login", use_container_width=True)
-            if submitted and name and password == "0000":
-                st.session_state.authenticated = True
-                st.toast(f"Welcome back, {name}!", icon="👋")
-                st.rerun()
-            elif submitted:
-                st.error("Invalid credentials.")
-    page_options = ["View Equipment"]
+            if st.form_submit_button("Login"):
+                if password == "0000":
+                    st.session_state.authenticated = True
+                    st.rerun()
+                else:
+                    st.error("Invalid")
 else:
-    st.sidebar.success("Logged in as Staff")
-    if st.sidebar.button("Logout", icon="🔒"):
+    # If logged in, add the extra page
+    page_options = ["View Equipment", "Loan & Return"]
+    st.sidebar.success("Staff Access Active")
+    if st.sidebar.button("Logout"):
         st.session_state.authenticated = False
         st.rerun()
-    page_options = ["View Equipment", "Loan & Return"]
 
 selected_page = st.sidebar.radio("Navigation", page_options)
 
