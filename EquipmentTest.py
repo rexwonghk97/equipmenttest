@@ -65,6 +65,24 @@ st.markdown("""
 def get_database_connection():
     return sqlite3.connect('Test_equipment_database.db')
 
+# --- API ENDPOINT FOR AI BOT (Backdoor) ---
+if st.query_params.get("api") == "true":
+    try:
+        conn = get_database_connection()
+        query = """
+        SELECT 
+            Equipment_List.Name, 
+            Equipment_List.Brand, 
+            Loan_History.Availability 
+        FROM Equipment_List
+        JOIN Loan_History ON Equipment_List.Equipment_ID = Loan_History.Equipment_ID
+        """
+        df = pd.read_sql_query(query, conn)
+        st.json(df.to_dict(orient="records"))
+    except Exception as e:
+        st.json({"error": str(e)})
+    st.stop()
+
 def fetch_types(conn):
     try:
         query = "SELECT DISTINCT Type FROM Equipment_List"
@@ -225,8 +243,7 @@ if selected_page == "View Equipment":
                 if filtered_data.empty:
                     st.info("No equipment found matching these criteria.")
                 else:
-                    # --- NEW: FOLDABLE TABLE ---
-                    # We use st.expander to wrap the dataframe
+                    # FOLDABLE TABLE (Inside Expander)
                     with st.expander("📊 View Detailed Inventory List (Click to Expand/Collapse)", expanded=True):
                         st.dataframe(
                             filtered_data,
@@ -242,17 +259,20 @@ if selected_page == "View Equipment":
             except Exception as e:
                 st.error(f"Database Error: {e}")
 
-    # --- CHATBOT (SAFE VERSION) ---
+    # --- CHATBOT (STATIC VISIBLE VERSION) ---
     st.write("")
     st.divider()
-    # Using a simple expander for the chatbot is 100% reliable
-    with st.expander("💬 Need Help? Open Support Assistant", expanded=False):
-        chatbot_code = """
-        <div id="chatbot-container"></div>
-        <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
-        <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
-        """
-        components.html(chatbot_code, height=600)
+    
+    # Header Message
+    st.markdown("### 💬 Need Help? Open Support Assistant")
+    
+    # Direct HTML embed (No expander)
+    chatbot_code = """
+    <div id="chatbot-container"></div>
+    <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
+    <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
+    """
+    components.html(chatbot_code, height=600)
 
 
 # === PAGE: LOAN & RETURN ===
