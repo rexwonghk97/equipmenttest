@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import streamlit.components.v1 as components
-import plotly.express as px  # REQUIRED for the Pie Chart
+import altair as alt  # Built-in to Streamlit, no install needed
 from datetime import date
 
 # --- 1. CONFIGURATION ---
@@ -156,7 +156,7 @@ if selected_page == "View Equipment":
     with get_database_connection() as conn:
         types = fetch_types(conn)
         
-        # --- DASHBOARD SECTION (PIE CHART + METRICS) ---
+        # --- DASHBOARD SECTION (ALTAIR CHART + METRICS) ---
         try:
             df_all = fetch_equipment_data(conn)
             total = len(df_all)
@@ -167,31 +167,38 @@ if selected_page == "View Equipment":
             chart_col, metrics_col = st.columns([1.5, 1])
             
             with chart_col:
-                # Prepare data for Plotly
+                # Prepare data
                 chart_data = pd.DataFrame({
                     "Status": ["Available", "Loaned Out"],
                     "Count": [avail, loaned]
                 })
-                
-                # Create Donut Chart
-                fig = px.pie(
-                    chart_data, 
-                    values='Count', 
-                    names='Status', 
-                    hole=0.6, # Makes it a Donut
-                    color='Status',
-                    color_discrete_map={'Available':'#66bb6a', 'Loaned Out':'#ffa726'}
+
+                # Create Altair Donut Chart
+                base = alt.Chart(chart_data).encode(
+                    theta=alt.Theta("Count", stack=True)
                 )
                 
-                # Customize Layout: Put Total in the Center
-                fig.update_layout(
-                    showlegend=True,
-                    legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
-                    margin=dict(t=0, b=30, l=0, r=0),
-                    height=300,
-                    annotations=[dict(text=f"{total}<br>Assets", x=0.5, y=0.5, font_size=24, showarrow=False, font_weight='bold')]
+                pie = base.mark_arc(innerRadius=60).encode(
+                    color=alt.Color("Status", scale=alt.Scale(domain=["Available", "Loaned Out"], range=["#66bb6a", "#ffa726"])),
+                    order=alt.Order("Count", sort="descending"),
+                    tooltip=["Status", "Count"]
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                
+                # Text in the center
+                text = base.mark_text(radius=0).encode(
+                    text=alt.value(f"{total}"),
+                    size=alt.value(30),
+                    color=alt.value("#333333") 
+                )
+                
+                # Label below center number
+                text_label = base.mark_text(radius=0, dy=20).encode(
+                    text=alt.value("Assets"),
+                    size=alt.value(12),
+                    color=alt.value("#666666")
+                )
+
+                st.altair_chart(pie + text + text_label, use_container_width=True)
 
             with metrics_col:
                 st.write("") # small spacing aligner
