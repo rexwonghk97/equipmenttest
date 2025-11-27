@@ -293,7 +293,7 @@ if selected_page == "View Equipment":
     <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
     <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
     """
-    components.html(chatbot_code, height=600)
+    components.html(chatbot_code, unsafe_allow_html=True)
 
 
 # === PAGE: LOAN & RETURN ===
