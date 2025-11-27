@@ -10,7 +10,7 @@ chatbot_code = """
 """
 
 # Render the chatbot code
-components.html(chatbot_code, height=40)  # Adjust height as necessary
+components.html(chatbot_code, height=80)  # Adjust height as necessary
    
 # Set up the database connection
 def get_database_connection():
