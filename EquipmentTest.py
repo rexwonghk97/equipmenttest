@@ -58,6 +58,29 @@ st.markdown("""
         padding: 10px 0;
         border-bottom: 1px solid #f0f0f0;
     }
+    
+    /* --- FLOATING HELPER MESSAGE CSS --- */
+    .floating-message {
+        position: fixed;
+        bottom: 90px; /* Position it right above the chatbot icon */
+        right: 25px;
+        background-color: #ffffff;
+        color: #31333F;
+        padding: 12px 20px;
+        border-radius: 15px 15px 5px 15px; /* Speech bubble shape */
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 9999; /* Ensure it sits on top */
+        font-family: sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        border: 1px solid #e0e0e0;
+        animation: fadeIn 1s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -243,7 +266,7 @@ if selected_page == "View Equipment":
                 if filtered_data.empty:
                     st.info("No equipment found matching these criteria.")
                 else:
-                    # FOLDABLE TABLE (Inside Expander)
+                    # FOLDABLE TABLE
                     with st.expander("📊 View Detailed Inventory List (Click to Expand/Collapse)", expanded=True):
                         st.dataframe(
                             filtered_data,
@@ -259,14 +282,12 @@ if selected_page == "View Equipment":
             except Exception as e:
                 st.error(f"Database Error: {e}")
 
-    # --- CHATBOT (STATIC VISIBLE VERSION) ---
-    st.write("")
-    st.divider()
+    # --- CHATBOT & FLOATING HELP TEXT ---
     
-    # Header Message
-    st.markdown("### 💬 Need Help? Open Support Assistant")
+    # 1. This DIV creates the speech bubble text "Need Help?" floating at bottom right
+    st.markdown('<div class="floating-message">💬 <b>Need Help?</b><br>Support Assistant</div>', unsafe_allow_html=True)
     
-    # Direct HTML embed (No expander)
+    # 2. This loads the Botpress Chatbot
     chatbot_code = """
     <div id="chatbot-container"></div>
     <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
