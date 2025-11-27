@@ -288,9 +288,7 @@ if selected_page == "View Equipment":
     st.markdown('<div class="floating-message">💬 <b>Need Help?</b><br>Support Assistant</div>', unsafe_allow_html=True)
     
     # 2. This loads the Botpress Chatbot
-    st.markdown('<div class="floating-message"></div>',
-        unsafe_allow_html=True)
-
+    st.markdown('<div class="floating-message"></div>', unsafe_allow_html=True)
     chatbot_code = """
     <div id="chatbot-container"></div>
     <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
