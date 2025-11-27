@@ -249,4 +249,22 @@ elif selected_page == "Loan & Return":
                         format_func=lambda x: f"{unavailable_data.loc[unavailable_data['ID'] == x, 'Name'].values[0]} (ID: {x})"
                     )
 
-                    submitted_return = st.form_submit_button("Confirm Return 📥", type="
+                    submitted_return = st.form_submit_button("Confirm Return 📥", type="primary")
+
+                    if submitted_return:
+                        if selected_return_ids:
+                            try:
+                                for equipment_id in selected_return_ids:
+                                    conn.execute(
+                                        "UPDATE Loan_History SET Availability = 'Yes', Loan_From = NULL WHERE Equipment_ID = ?",
+                                        (equipment_id,)
+                                    )
+                                conn.commit()
+                                st.toast(f"Successfully returned {len(selected_return_ids)} item(s)!", icon="✅")
+                                st.rerun() # Refresh page immediately
+                            except Exception as e:
+                                st.error(f"Error: {e}")
+                        else:
+                            st.warning("Please select at least one item.")
+            else:
+                st.info("No items currently loaned out for this type.")
