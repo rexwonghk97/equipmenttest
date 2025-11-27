@@ -105,14 +105,14 @@ if st.session_state.active_page == "Overview":
         st.title('Overview:')
         st.subheader('This is a test page for viewing equipment')
        
-    chatbot_code = """
-<div id="chatbot-container"></div>
-<script src="https://cdn.botpress.cloud/webchat/v3.3/inject.js" defer></script>
-<script src="https://files.bpcontent.cloud/2025/11/27/06/20251127065604-HBKZN89E.js" defer></script>
-"""
+        chatbot_code = """
+        <div id="chatbot-container"></div>
+        <script src="https://cdn.botpress.cloud/webchat/v3.3/inject.js" defer></script>
+        <script src="https://files.bpcontent.cloud/2025/11/27/06/20251127065604-HBKZN89E.js" defer></script>
+        """
 
-# Render the chatbot code
-components.html(chatbot_code, height=120)  # Adjust height as necessary
+        # Render the chatbot code
+        components.html(chatbot_code, height=120)  # Adjust height as necessary
 
 elif st.session_state.active_page == "View Equipment":
     with get_database_connection() as conn:
