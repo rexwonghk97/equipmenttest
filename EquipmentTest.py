@@ -217,15 +217,15 @@ if selected_page == "View Equipment":
     <!-- Custom CSS to Force Left Positioning inside the iframe -->
     <style>
         /* This moves the chatbot bubble/window to the left side */
-        .bp-widget-widget { left: 200px !important; right: auto !important; }
-        .bp-widget-side { left: 200px !important; right: auto !important; }
+        .bp-widget-widget { left: 40px !important; right: auto !important; }
+        .bp-widget-side { left: 40px !important; right: auto !important; }
     </style>
     """
     
     # We render this in an HTML component. 
     # Note: Streamlit puts this in an iframe at the bottom of the page flow.
     # To use it, the user scrolls to the bottom.
-    components.html(chatbot_code, height=700)
+    components.html(chatbot_code, height=600)
 
 
 # === PAGE: LOAN & RETURN ===
