@@ -12,14 +12,27 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
+# Custom CSS for better styling and BLACK TEXT for metrics
 st.markdown("""
     <style>
-    .stMetric {
+    /* Style for Metrics container */
+    div[data-testid="stMetric"] {
         background-color: #f0f2f6;
         padding: 10px;
         border-radius: 10px;
+        border: 1px solid #d6d6d6;
     }
+    
+    /* Force Metric Label (Title) to Black */
+    label[data-testid="stMetricLabel"] {
+        color: #000000 !important;
+    }
+    
+    /* Force Metric Value (Number) to Black */
+    div[data-testid="stMetricValue"] {
+        color: #000000 !important;
+    }
+
     .block-container {
         padding-top: 2rem;
     }
@@ -43,12 +56,10 @@ def fetch_equipment_data(conn, availability='All', equipment_type='ALL'):
     query_conditions = []
     params = []
 
-    # Determine availability filter
     if availability != 'All':
         query_conditions.append('Loan_History.Availability = ?')
         params.append(availability)
 
-    # Determine type filter
     if equipment_type != 'ALL':
         query_conditions.append("Equipment_List.Type = ?")
         params.append(equipment_type)
@@ -94,38 +105,24 @@ if not st.session_state.authenticated:
                 else:
                     st.error("Invalid credentials.")
     
-    # Restrict navigation if not logged in
-    page_options = ["Overview", "View Equipment"]
+    # If not logged in, only show View Equipment
+    page_options = ["View Equipment"]
 else:
     st.sidebar.success("Logged in as Staff")
     if st.sidebar.button("Logout", icon="🔒"):
         st.session_state.authenticated = False
         st.rerun()
-    # Full navigation
-    page_options = ["Overview", "View Equipment", "Loan & Return"]
+    # Full navigation (Overview removed as requested)
+    page_options = ["View Equipment", "Loan & Return"]
 
-# Use radio button for smoother navigation state
+# Use radio button for navigation
 selected_page = st.sidebar.radio("Navigation", page_options)
 
 
 # --- 5. MAIN PAGE LOGIC ---
 
-# === PAGE: OVERVIEW ===
-if selected_page == "Overview":
-    st.title("🖥️ System Overview")
-    st.info("Welcome to the Equipment Management System.")
-    
-    # Embed Chatbot
-    st.subheader("Support Assistant")
-    chatbot_code = """
-    <div id="chatbot-container"></div>
-    <script src="https://cdn.botpress.cloud/webchat/v3.3/inject.js" defer></script>
-    <script src="https://files.bpcontent.cloud/2025/11/27/06/20251127065604-HBKZN89E.js" defer></script>
-    """
-    components.html(chatbot_code, height=600)
-
 # === PAGE: VIEW EQUIPMENT ===
-elif selected_page == "View Equipment":
+if selected_page == "View Equipment":
     st.title("🔎 Equipment Inventory")
     
     with get_database_connection() as conn:
@@ -139,32 +136,30 @@ elif selected_page == "View Equipment":
             loaned_items = len(df_all[df_all['Availability'] == 'No'])
 
             c1, c2, c3 = st.columns(3)
+            # Text color forced to black via CSS at top of script
             c1.metric("Total Assets", total_items)
-            c2.metric("Available", available_items, delta_color="normal")
-            c3.metric("Loaned Out", loaned_items, delta_color="inverse")
+            c2.metric("Available", available_items)
+            c3.metric("Loaned Out", loaned_items)
         except Exception:
             st.warning("Could not load metrics. Database might be empty.")
 
         st.divider()
 
-        # Filters using columns for better layout
-        col1, col2, col3 = st.columns([1, 1, 2])
+        # Filters
+        col1, col2 = st.columns([1, 1])
         with col1:
             selected_type = st.selectbox('Filter by Type', ['ALL'] + types)
         with col2:
             selected_availability = st.selectbox('Filter by Status', ["All", "Available Only", "Loaned Out"])
         
-        # Map UI selection to DB values
         avail_map = {"All": "All", "Available Only": "Yes", "Loaned Out": "No"}
         
-        # Fetch Data
         try:
             filtered_data = fetch_equipment_data(conn, avail_map[selected_availability], selected_type)
             
             if filtered_data.empty:
                 st.info("No equipment found matching these criteria.")
             else:
-                # Use st.dataframe for an interactive table
                 st.dataframe(
                     filtered_data,
                     use_container_width=True,
@@ -172,7 +167,6 @@ elif selected_page == "View Equipment":
                     column_config={
                         "Availability": st.column_config.TextColumn(
                             "Status",
-                            help="Current status of the item",
                             validate="^(Yes|No)$"
                         ),
                         "Loan_Start": st.column_config.DateColumn(
@@ -183,6 +177,17 @@ elif selected_page == "View Equipment":
                 )
         except Exception as e:
             st.error(f"Database Error: {e}")
+
+    # Chatbot Component (Moved here)
+    st.divider()
+    with st.expander("💬 Open Support Assistant", expanded=False):
+        chatbot_code = """
+        <div id="chatbot-container"></div>
+        <script src="https://cdn.botpress.cloud/webchat/v3.3/inject.js" defer></script>
+        <script src="https://files.bpcontent.cloud/2025/11/27/06/20251127065604-HBKZN89E.js" defer></script>
+        """
+        components.html(chatbot_code, height=500)
+
 
 # === PAGE: LOAN & RETURN ===
 elif selected_page == "Loan & Return":
@@ -201,18 +206,26 @@ elif selected_page == "Loan & Return":
             with col_filter:
                 loan_type_filter = st.selectbox("Filter Available Items by Type", ['ALL'] + types, key="loan_type")
             with col_date:
-                # UX Improvement: Date Picker
                 loan_date = st.date_input("Loan Start Date", value=date.today())
 
             available_data = fetch_equipment_data(conn, 'Yes', loan_type_filter)
 
             if not available_data.empty:
                 with st.form("loan_form"):
-                    selected_ids = st.multiselect(
-                        "Select Items to Loan",
-                        options=available_data['ID'],
-                        format_func=lambda x: f"{available_data.loc[available_data['ID'] == x, 'Name'].values[0]} (ID: {x})"
-                    )
+                    st.write("Select Items to Loan:")
+                    
+                    # Create a scrollable container for checkboxes
+                    selected_ids = []
+                    with st.container(height=300, border=True):
+                        # Iterate through data to create checkboxes
+                        for index, row in available_data.iterrows():
+                            # Use unique keys for each checkbox
+                            is_checked = st.checkbox(
+                                f"{row['Name']} (ID: {row['ID']})", 
+                                key=f"loan_chk_{row['ID']}"
+                            )
+                            if is_checked:
+                                selected_ids.append(row['ID'])
                     
                     submitted_loan = st.form_submit_button("Confirm Loan ✅", type="primary")
 
@@ -226,11 +239,11 @@ elif selected_page == "Loan & Return":
                                     )
                                 conn.commit()
                                 st.toast(f"Successfully loaned {len(selected_ids)} item(s)!", icon="✅")
-                                st.rerun() # Refresh page immediately
+                                st.rerun()
                             except Exception as e:
                                 st.error(f"Error: {e}")
                         else:
-                            st.warning("Please select at least one item.")
+                            st.warning("Please check at least one item.")
             else:
                 st.info("No items currently available for this type.")
 
@@ -243,11 +256,19 @@ elif selected_page == "Loan & Return":
 
             if not unavailable_data.empty:
                 with st.form("return_form"):
-                    selected_return_ids = st.multiselect(
-                        "Select Items to Return",
-                        options=unavailable_data['ID'],
-                        format_func=lambda x: f"{unavailable_data.loc[unavailable_data['ID'] == x, 'Name'].values[0]} (ID: {x})"
-                    )
+                    st.write("Select Items to Return:")
+                    
+                    selected_return_ids = []
+                    # Create a scrollable container for checkboxes
+                    with st.container(height=300, border=True):
+                        for index, row in unavailable_data.iterrows():
+                            # Use unique keys for each checkbox
+                            is_checked = st.checkbox(
+                                f"{row['Name']} (ID: {row['ID']})", 
+                                key=f"ret_chk_{row['ID']}"
+                            )
+                            if is_checked:
+                                selected_return_ids.append(row['ID'])
 
                     submitted_return = st.form_submit_button("Confirm Return 📥", type="primary")
 
@@ -261,10 +282,10 @@ elif selected_page == "Loan & Return":
                                     )
                                 conn.commit()
                                 st.toast(f"Successfully returned {len(selected_return_ids)} item(s)!", icon="✅")
-                                st.rerun() # Refresh page immediately
+                                st.rerun()
                             except Exception as e:
                                 st.error(f"Error: {e}")
                         else:
-                            st.warning("Please select at least one item.")
+                            st.warning("Please check at least one item.")
             else:
                 st.info("No items currently loaned out for this type.")
