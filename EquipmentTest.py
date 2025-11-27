@@ -1,6 +1,17 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
+import streamlit.components.v1 as components
+
+  src="https://cdn.botpress.cloud/webchat/v3.3/inject.js"></script"
+  botId="d5d6e7bb-5738-411e-b57d-a316050cef79"
+  messagingUrl="https://messaging.botpress.cloud"
+  webchatConfig="{
+    'botName': 'ADA Assistant',
+    'avatarUrl': 'https://files.bpcontent.cloud/2025/11/27/06/20251127065919-67WD88Y4.png',
+    'stylesheet': 'https://yourdomain.com/style.css'
+  }"
+
 
 message = st.chat_message("ai")  # 或者寫 "ai"
 # message = st.chat_message("assistant", avatar="🦖")  # 自訂頭像
