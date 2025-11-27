@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import streamlit.components.v1 as components
-import altair as alt  # Built-in to Streamlit, no install needed
+import altair as alt  # Built-in to Streamlit
 from datetime import date
 
 # --- 1. CONFIGURATION ---
@@ -57,6 +57,19 @@ st.markdown("""
     .item-row {
         padding: 10px 0;
         border-bottom: 1px solid #f0f0f0;
+    }
+    
+    /* --- FLOATING CHATBOT FIX --- */
+    /* This targets the iframe created by st.components.v1.html */
+    iframe[title="streamlit.components.v1.components.html"] {
+        position: fixed !important;
+        bottom: 20px !important;
+        left: 20px !important;
+        width: 350px !important;  /* Width of the chat window */
+        height: 600px !important; /* Height of the open chat window */
+        z-index: 1000000 !important;
+        border: none !important;
+        background: transparent !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -156,14 +169,13 @@ if selected_page == "View Equipment":
     with get_database_connection() as conn:
         types = fetch_types(conn)
         
-        # --- DASHBOARD SECTION (ALTAIR CHART + METRICS) ---
+        # --- DASHBOARD SECTION ---
         try:
             df_all = fetch_equipment_data(conn)
             total = len(df_all)
             avail = len(df_all[df_all['Availability'] == 'Yes'])
             loaned = len(df_all[df_all['Availability'] == 'No'])
             
-            # Create two columns: Chart (Left) and Metrics (Right)
             chart_col, metrics_col = st.columns([1.5, 1])
             
             with chart_col:
@@ -184,14 +196,12 @@ if selected_page == "View Equipment":
                     tooltip=["Status", "Count"]
                 )
                 
-                # Text in the center
                 text = base.mark_text(radius=0).encode(
                     text=alt.value(f"{total}"),
                     size=alt.value(30),
                     color=alt.value("#333333") 
                 )
                 
-                # Label below center number
                 text_label = base.mark_text(radius=0, dy=20).encode(
                     text=alt.value("Assets"),
                     size=alt.value(12),
@@ -201,7 +211,7 @@ if selected_page == "View Equipment":
                 st.altair_chart(pie + text + text_label, use_container_width=True)
 
             with metrics_col:
-                st.write("") # small spacing aligner
+                st.write("") 
                 display_metric_card_horizontal("Total Assets", total, "📦", "#e3f2fd")
                 display_metric_card_horizontal("Available Now", avail, "✅", "#e8f5e9")
                 display_metric_card_horizontal("On Loan", loaned, "⏳", "#fff3e0")
@@ -210,7 +220,7 @@ if selected_page == "View Equipment":
             st.warning("Could not load metrics. Database might be empty.")
             st.error(e)
 
-        st.write("") # Spacer
+        st.write("") 
         
         # --- FILTERS & DATAFRAME ---
         with st.container(border=True):
@@ -243,16 +253,19 @@ if selected_page == "View Equipment":
                 st.error(f"Database Error: {e}")
 
     # --- FLOATING CHATBOT ---
+    # Note: The 'height' here creates the internal space, 
+    # but the CSS at the top of the file forces the iframe to fixed position.
     chatbot_code = """
     <div id="chatbot-container"></div>
     <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
     <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
     <style>
-        .bp-widget-widget { left: 20px !important; right: auto !important; bottom: 20px !important; }
-        .bp-widget-side { left: 20px !important; right: auto !important; bottom: 20px !important;}
+        /* Position inside the iframe */
+        .bp-widget-widget { left: 0px !important; right: auto !important; bottom: 0px !important; }
+        .bp-widget-side { left: 0px !important; right: auto !important; bottom: 0px !important;}
     </style>
     """
-    components.html(chatbot_code, height=700)
+    components.html(chatbot_code, height=600)
 
 
 # === PAGE: LOAN & RETURN ===
@@ -279,7 +292,6 @@ elif selected_page == "Loan & Return":
                     st.markdown("### Select Items to Loan")
                     st.caption("Check the box on the left to select an item.")
                     
-                    # Headers
                     h1, h2, h3, h4 = st.columns([0.5, 2.5, 2, 2])
                     h1.markdown("**Select**")
                     h2.markdown("**Equipment**")
