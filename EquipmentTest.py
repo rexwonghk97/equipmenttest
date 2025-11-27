@@ -11,22 +11,7 @@ chatbot_code = """
 
 # Render the chatbot code
 components.html(chatbot_code, height=600)  # Adjust height as necessary
-
-message = st.chat_message("ai")  # 或者寫 "ai"
-# message = st.chat_message("assistant", avatar="🦖")  # 自訂頭像
-message.write("你好！我是 ChatBot Rex-iv，可以回答問題及提供這個數據庫的資訊。")
-
-# 用戶輸入區
-user_input = st.chat_input("Say something...")
-if user_input:
-    # 這裡您可以對用戶的輸入進行解析或回應
-    with st.chat_message("user"):
-        st.write(user_input)
-
-    # 假設是一個靜態回應
-    with st.chat_message("assistant"):
-        st.write("謝謝你的問題！這是一個測試版DataBase。")
-        
+   
 # Set up the database connection
 def get_database_connection():
     return sqlite3.connect('Test_equipment_database.db')
