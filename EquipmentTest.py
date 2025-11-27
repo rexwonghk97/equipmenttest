@@ -112,7 +112,7 @@ if st.session_state.active_page == "Overview":
         """
 
         # Render the chatbot code
-        components.html(chatbot_code, height=120)  # Adjust height as necessary
+        components.html(chatbot_code, height=600)  # Adjust height as necessary
 
 elif st.session_state.active_page == "View Equipment":
     with get_database_connection() as conn:
