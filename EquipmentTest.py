@@ -82,8 +82,8 @@ div.stButton > button:focus {
    -----------------------------------------------------------------------
    FLOATING CHATBOT CONTAINER FIX
    -----------------------------------------------------------------------
-   We use height="600" in the Python code below to identify this specific iframe.
-   This CSS forces that iframe to be fixed to the viewport, overlaying the content.
+   This allows the chatbot iframe to cover the screen (for the popup)
+   but stay invisible/clickable-through for the rest of the app.
 */
 iframe[height="600"] {
     position: fixed !important;
@@ -93,14 +93,14 @@ iframe[height="600"] {
     height: 100vh !important;
     z-index: 999999 !important;
     border: none !important;
-    pointer-events: none !important; /* Click-through for the background */
+    pointer-events: none !important; /* Default: click-through */
 }
 </style>
 """, unsafe_allow_html=True)
 
 # --- 3. DATABASE FUNCTIONS ---
 def get_database_connection():
-    return sqlite3.connect('daci_database.db')
+    return sqlite3.connect('Test_equipment_database.db')
 
 # --- API ENDPOINT FOR AI BOT ---
 if st.query_params.get("api") == "true":
@@ -267,7 +267,7 @@ if selected_page == "View Equipment":
         with cat_c4:
             if st.button("🔊\nAudio"): set_category("Audio")
         with cat_c5:
-            if st.button("🥽\nVR Headset"): set_category("VR Headset")
+            if st.button("🎙️\nMICs"): set_category("MICs (Recording Studio)")
         with cat_c6:
             if st.button("📦\nOthers"): set_category("Others")
 
@@ -314,17 +314,79 @@ if selected_page == "View Equipment":
                         )
             except Exception as e:
                 st.error(f"Database Error: {e}")
-    # --- CHATBOT & FLOATING HELP TEXT ---
+
+    # --- CHATBOT SECTION (FIXED) ---
+    # We combine the "Custom Button" and the "Botpress Script" into ONE HTML block.
+    # This prevents layout conflicts.
     
-    # 1. This DIV creates the speech bubble text "Need Help?" floating at bottom right
-    st.markdown('<div class="floating-message">💬 <b>Need Help?</b><br>Support Assistant</div>', unsafe_allow_html=True)
-    
-    # 2. This loads the Botpress Chatbot
     chatbot_code = """
+    <!-- 1. The Container for the Chat Window -->
     <div id="chatbot-container"></div>
+    
+    <!-- 2. The Custom Button (Visible) -->
+    <div id="custom-chat-trigger" onclick="toggleChat()">
+        <span style="font-size: 20px;">💬</span>
+        <span>Need Help? Support Assistant</span>
+    </div>
+
+    <!-- 3. Botpress Scripts -->
     <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
     <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
+    
+    <!-- 4. Styling -->
+    <style>
+        /* Body transparent so we can see Streamlit behind */
+        body { background: transparent !important; }
+
+        /* HIDE the default red circular button */
+        .bp-widget-widget {
+            display: none !important;
+        }
+
+        /* STYLE the custom button */
+        #custom-chat-trigger {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background-color: #ffffff;
+            color: #31333F;
+            border: 1px solid #dcdcdc;
+            border-radius: 30px; /* Pill Shape */
+            padding: 12px 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            cursor: pointer;
+            z-index: 99999;
+            font-family: sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            pointer-events: auto !important; /* Make this clickable */
+        }
+        
+        #custom-chat-trigger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+            background-color: #f8f9fa;
+        }
+        
+        /* Allow clicking inside the chat window when it's open */
+        .bp-widget-side, .bp-widget-webchat {
+            pointer-events: auto !important;
+        }
+    </style>
+
+    <!-- 5. Function to open/close chat -->
+    <script>
+        function toggleChat() {
+            window.botpressWebChat.sendEvent({ type: 'toggle' });
+        }
+    </script>
     """
+    
+    # We use height=600 to match the CSS selector at the top of the file
     components.html(chatbot_code, height=600)
     
 elif selected_page == "Loan & Return":
@@ -440,4 +502,3 @@ elif selected_page == "Loan & Return":
                             st.warning("Select at least one item.")
             else:
                 st.info("No items loaned out.")
-
