@@ -94,7 +94,7 @@ st.markdown("""
 
 # --- 3. DATABASE FUNCTIONS ---
 def get_database_connection():
-    return sqlite3.connect('Test_equipment_database.db')
+    return sqlite3.connect('daci_database.db')
 
 # --- API ENDPOINT FOR AI BOT ---
 if st.query_params.get("api") == "true":
