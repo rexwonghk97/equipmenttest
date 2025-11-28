@@ -14,7 +14,6 @@ st.set_page_config(
 )
 
 # --- 2. CUSTOM CSS ---
-# NOTE: This CSS applies to the MAIN STREAMLIT PAGE
 st.markdown("""
 <style>
 /* MAIN CONTAINER PADDING */
@@ -79,19 +78,42 @@ div.stButton > button:focus {
     border-color: #2196f3;
 }
 
-/* 
-   FLOATING CHATBOT OVERLAY (THE IFRAME ITSELF)
-   This moves the entire iframe to cover the screen but allows click-through.
-*/
-iframe[height="800"] {
+/* FLOATING CHATBOT CONTAINER */
+#chatbot-container {
     position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
+    bottom: 80px; /* Adjust this to position above button */
+    right: 25px;
     z-index: 999999 !important;
+    width: 400px; /* set the width as needed */
+    height: 500px; /* set the height as needed */
     border: none !important;
-    pointer-events: none !important; /* Lets you click buttons behind the chat overlay */
+}
+
+/* CHAT TRIGGER BUTTON */
+#custom-chat-trigger {
+    position: fixed; 
+    bottom: 25px; 
+    right: 25px;
+    background-color: #ffffff; 
+    color: #31333F;
+    border: 1px solid #dcdcdc; 
+    border-radius: 30px;
+    padding: 12px 24px; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    cursor: pointer; 
+    z-index: 99999;
+    font-family: sans-serif; 
+    font-size: 15px; 
+    font-weight: 600;
+    display: flex; 
+    align-items: center; 
+    gap: 10px;
+    transition: all 0.3s ease; 
+}
+#custom-chat-trigger:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2); 
+    background-color: #f8f9fa; 
 }
 </style>
 """, unsafe_allow_html=True)
@@ -129,16 +151,20 @@ def fetch_types(conn):
 def fetch_equipment_data(conn, availability='All', equipment_type='ALL', category_filter='ALL'):
     query_conditions = []
     params = []
+    # 1. Availability Filter
     if availability != 'All':
         query_conditions.append('Loan_History.Availability = ?')
         params.append(availability)
 
+    # 2. Category Filter (Buttons)
     if category_filter != 'ALL':
         if category_filter == 'Others':
             query_conditions.append("Equipment_List.Category NOT IN ('Lights', 'Camera', 'Digital Tablet', 'Audio', 'MICs (Recording Studio)')")
         else:
             query_conditions.append("Equipment_List.Category = ?")
             params.append(category_filter)
+
+    # 3. Type Filter (Dropdown Fallback)
     elif equipment_type != 'ALL':
         query_conditions.append("Equipment_List.Type = ?")
         params.append(equipment_type)
@@ -148,7 +174,7 @@ def fetch_equipment_data(conn, availability='All', equipment_type='ALL', categor
     query = f"""
     SELECT 
         Equipment_List.Equipment_ID AS ID,
-        Equipment_List.Category, 
+        Equipment_List.Category,
         Equipment_List.Type,
         Equipment_List.Name,
         Equipment_List.Brand,
@@ -207,12 +233,14 @@ def display_metric_card_horizontal(title, value, icon, color_bg):
     """, unsafe_allow_html=True)
 
 # --- 6. MAIN PAGE LOGIC ---
+# === PAGE: VIEW EQUIPMENT ===
 if selected_page == "View Equipment":
     st.title("🔎 Equipment Inventory")
 
     with get_database_connection() as conn:
         types = fetch_types(conn)
 
+        # --- A. METRICS & CHART SECTION ---
         try:
             df_all = fetch_equipment_data(conn)
             total = len(df_all)
@@ -222,6 +250,7 @@ if selected_page == "View Equipment":
             chart_col, metrics_col = st.columns([1.5, 1])
 
             with chart_col:
+                # Prepare data
                 chart_data = pd.DataFrame({
                     "Status": ["Available", "Loaned Out"],
                     "Count": [avail, loaned]
@@ -250,25 +279,35 @@ if selected_page == "View Equipment":
 
         st.divider()
         
+        # --- B. CATEGORY CIRCLE BUTTONS ---
         st.markdown("### 📂 Browse by Category")
+        
         cat_c1, cat_c2, cat_c3, cat_c4, cat_c5, cat_c6 = st.columns(6)
         
         def set_category(cat):
             st.session_state.selected_category = cat
 
+        # Buttons map to the 'Category' column in DB
         with cat_c1:
-            if st.button("💡\nLights"): set_category("Lights")
+            if st.button("💡\nLights"): 
+                set_category("Lights")
         with cat_c2:
-            if st.button("📷\nCamera"): set_category("Camera")
+            if st.button("📷\nCamera"): 
+                set_category("Camera")
         with cat_c3:
-            if st.button("📱\nTablet"): set_category("Digital Tablet")
+            if st.button("📱\nTablet"): 
+                set_category("Digital Tablet")
         with cat_c4:
-            if st.button("🔊\nAudio"): set_category("Audio")
+            if st.button("🔊\nAudio"): 
+                set_category("Audio")
         with cat_c5:
-            if st.button("🥽\nVR Headset"): set_category("VR Headset")
+            if st.button("🥽\nVR Headset"): 
+                set_category("VR Headset")
         with cat_c6:
-            if st.button("📦\nOthers"): set_category("Others")
+            if st.button("📦\nOthers"): 
+                set_category("Others")
 
+        # Show currently selected filter
         if st.session_state.selected_category != 'ALL':
             st.info(f"Filtering by Category: **{st.session_state.selected_category}**")
             if st.button("Clear Filter ✖️"):
@@ -277,6 +316,7 @@ if selected_page == "View Equipment":
 
         st.write("") 
 
+        # --- C. FILTERS & TABLE ---
         with st.container(border=True):
             col1, col2 = st.columns([1, 1])
             with col1:
@@ -288,6 +328,7 @@ if selected_page == "View Equipment":
             avail_map = {"All": "All", "Available Only": "Yes", "Loaned Out": "No"}
             
             try:
+                # FETCH DATA using the Category Column Logic
                 filtered_data = fetch_equipment_data(
                     conn, 
                     avail_map[selected_availability], 
@@ -313,12 +354,45 @@ if selected_page == "View Equipment":
             except Exception as e:
                 st.error(f"Database Error: {e}")
 
+# --- CHATBOT WITH CUSTOM LAUNCHER ---
+chatbot_code = """
+<div id="chatbot-container"></div>
+<div id="custom-chat-trigger" onclick="toggleChat()">
+    <span style="font-size: 20px;">💬</span>
+    <span>Need Help? Support Assistant</span>
+</div>
+<script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
+<script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
+<style>
+    body { background: transparent !important; }
+    .bp-widget-widget { display: none !important; }
+    #custom-chat-trigger {
+        position: fixed; bottom: 25px; right: 25px;
+        background-color: #ffffff; color: #31333F;
+        border: 1px solid #dcdcdc; border-radius: 30px;
+        padding: 12px 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        cursor: pointer; z-index: 99999;
+        font-family: sans-serif; font-size: 15px; font-weight: 600;
+        display: flex; align-items: center; gap: 10px;
+        transition: all 0.3s ease; pointer-events: auto !important;
+    }
+    #custom-chat-trigger:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.2); background-color: #f8f9fa; }
+    .bp-widget-side, .bp-widget-webchat { pointer-events: auto !important; }
+</style>
+<script>
+    function toggleChat() { window.botpressWebChat.sendEvent({ type: 'toggle' }); }
+</script>
+"""
+components.html(chatbot_code, height=800)
+
+# === PAGE: LOAN & RETURN ===
 elif selected_page == "Loan & Return":
     st.title("📑 Equipment Loan & Return")
     with get_database_connection() as conn:
         types = fetch_types(conn)
         tab_loan, tab_return = st.tabs(["📤 Loan Out", "📥 Return Item"])
 
+        # --- LOAN TAB ---
         with tab_loan:
             st.subheader("Process New Loan")
             c_fil, c_date = st.columns([1, 1])
@@ -333,6 +407,7 @@ elif selected_page == "Loan & Return":
                 with st.form("loan_form"):
                     st.markdown("### Select Items to Loan")
                     st.caption("Check the box on the left to select an item.")
+
                     h1, h2, h3, h4 = st.columns([0.5, 2.5, 2, 2])
                     h1.markdown("**Select**")
                     h2.markdown("**Equipment**")
@@ -346,7 +421,8 @@ elif selected_page == "Loan & Return":
                             c1, c2, c3, c4 = st.columns([0.5, 2.5, 2, 2])
                             with c1:
                                 is_checked = st.checkbox("", key=f"loan_chk_{row['ID']}")
-                                if is_checked: selected_ids.append(row['ID'])
+                                if is_checked:
+                                    selected_ids.append(row['ID'])
                             with c2:
                                 st.markdown(f"**{row['Name']}**")
                                 st.caption(f"ID: {row['ID']}")
@@ -376,6 +452,7 @@ elif selected_page == "Loan & Return":
             else:
                 st.info("No items available.")
 
+        # --- RETURN TAB ---
         with tab_return:
             st.subheader("Process Return")
             return_type_filter = st.selectbox("Filter by Type", ['ALL'] + types, key="return_type")
@@ -397,7 +474,8 @@ elif selected_page == "Loan & Return":
                             c1, c2, c3, c4 = st.columns([0.5, 2.5, 2, 2])
                             with c1:
                                 is_checked = st.checkbox("", key=f"ret_chk_{row['ID']}")
-                                if is_checked: selected_return_ids.append(row['ID'])
+                                if is_checked:
+                                    selected_return_ids.append(row['ID'])
                             with c2:
                                 st.markdown(f"**{row['Name']}**")
                                 st.caption(f"ID: {row['ID']}")
@@ -427,64 +505,3 @@ elif selected_page == "Loan & Return":
             else:
                 st.info("No items loaned out.")
 
-# --- 7. GLOBAL CHATBOT (Loads on ALL pages) ---
-# NOTE: The styling for the BUTTON (#custom-chat-trigger) must go HERE, 
-# because it lives inside the iframe.
-chatbot_code = """
-<div id="chatbot-container"></div>
-<div id="custom-chat-trigger" onclick="toggleChat()">
-    <span style="font-size: 20px;">💬</span>
-    <span>Need Help? Support Assistant</span>
-</div>
-<script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
-<script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
-<style>
-    /* 1. Make the body of the iframe transparent so we see the website behind it */
-    body { background: transparent !important; }
-    
-    /* 2. Hide the default Botpress launcher if present */
-    .bp-widget-widget { display: none !important; }
-
-    /* 3. Style the Custom Trigger Button (Floating Pill) */
-    #custom-chat-trigger {
-        position: fixed; 
-        bottom: 25px; 
-        right: 25px;
-        background-color: #ffffff; 
-        color: #31333F;
-        border: 1px solid #dcdcdc; 
-        border-radius: 30px;
-        padding: 12px 24px; 
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        cursor: pointer; 
-        z-index: 999999;
-        font-family: sans-serif; 
-        font-size: 15px; 
-        font-weight: 600;
-        display: flex; 
-        align-items: center; 
-        gap: 10px;
-        transition: all 0.3s ease; 
-        
-        /* CRITICAL: Allows the button to be clicked even though the iframe is fixed */
-        pointer-events: auto !important;
-    }
-    
-    #custom-chat-trigger:hover { 
-        transform: translateY(-2px); 
-        box-shadow: 0 6px 16px rgba(0,0,0,0.2); 
-        background-color: #f8f9fa; 
-    }
-    
-    /* 4. Ensure the actual chat window is clickable when open */
-    .bp-widget-side, .bp-widget-webchat { 
-        pointer-events: auto !important; 
-    }
-</style>
-<script>
-    function toggleChat() { window.botpressWebChat.sendEvent({ type: 'toggle' }); }
-</script>
-"""
-# We place this at the very end. The CSS in st.markdown puts this iframe 
-# on top of everything, covering the whole screen.
-components.html(chatbot_code, height=800)
