@@ -317,7 +317,7 @@ if selected_page == "View Equipment":
     # --- CHATBOT & FLOATING HELP TEXT ---
     
     # 1. This DIV creates the speech bubble text "Need Help?" floating at bottom right
-    st.markdown('<div class="floating-message">💬 <b>Need Help?</b><br>Support Assistant</div>', unsafe_allow_html=True)
+    st.markdown('<div class="floating-message">💬 <b>Need Help?</b> Scroll Down to find Support Assistant Chat Bot </div>', unsafe_allow_html=True)
     
     # 2. This loads the Botpress Chatbot
     chatbot_code = """
