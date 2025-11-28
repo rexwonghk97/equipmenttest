@@ -53,42 +53,56 @@ st.markdown("""
         border-radius: 50%;
     }
     
+    /* CATEGORY BUTTON STYLING (ROUNDED/CIRCULAR LOOK) */
+    div.stButton > button {
+        width: 100%;
+        height: 80px;
+        border-radius: 20px;
+        border: 1px solid #e0e0e0;
+        background-color: #f8f9fa;
+        color: #333;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    div.stButton > button:hover {
+        background-color: #e3f2fd;
+        border-color: #2196f3;
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        color: #2196f3;
+    }
+    div.stButton > button:focus {
+        background-color: #2196f3;
+        color: white;
+        border-color: #2196f3;
+    }
+
     /* ROW ITEM STYLING IN LOAN/RETURN */
     .item-row {
         padding: 10px 0;
         border-bottom: 1px solid #f0f0f0;
     }
     
-    /* --- FLOATING HELPER MESSAGE CSS --- */
-    .floating-message {
-        position: fixed;
-        bottom: 90px; /* Position it right above the chatbot icon */
-        right: 25px;
-        background-color: #ffffff;
-        color: #31333F;
-        padding: 12px 20px;
-        border-radius: 15px 15px 5px 15px; /* Speech bubble shape */
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 9999; /* Ensure it sits on top */
-        font-family: sans-serif;
-        font-size: 14px;
-        font-weight: 600;
-        border: 1px solid #e0e0e0;
-        animation: fadeIn 1s ease-in;
-    }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+    /* FLOATING CHATBOT CONTAINER FIX */
+    iframe[height="800"] {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 999999 !important;
+        border: none !important;
+        pointer-events: none !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
 # --- 3. DATABASE FUNCTIONS ---
 def get_database_connection():
-    return sqlite3.connect('daci_database.db')
+    return sqlite3.connect('Test_equipment_database.db')
 
-# --- API ENDPOINT FOR AI BOT (Backdoor) ---
+# --- API ENDPOINT FOR AI BOT ---
 if st.query_params.get("api") == "true":
     try:
         conn = get_database_connection()
@@ -113,15 +127,28 @@ def fetch_types(conn):
     except Exception:
         return []
 
-def fetch_equipment_data(conn, availability='All', equipment_type='ALL'):
+def fetch_equipment_data(conn, availability='All', equipment_type='ALL', category_filter='ALL'):
     query_conditions = []
     params = []
 
+    # 1. Availability Filter
     if availability != 'All':
         query_conditions.append('Loan_History.Availability = ?')
         params.append(availability)
 
-    if equipment_type != 'ALL':
+    # 2. Type/Category Filter
+    # If the user clicks a Category Button, it overrides the dropdown
+    if category_filter != 'ALL':
+        if category_filter == 'Others':
+            # Logic for "Others": Select items NOT IN the known 5 categories
+            query_conditions.append("Equipment_List.Type NOT IN ('Lights', 'Camera', 'Digital Tablet', 'Audio', 'MICs (Recording Studio)')")
+        else:
+            # Logic for Specific Category
+            query_conditions.append("Equipment_List.Type = ?")
+            params.append(category_filter)
+    
+    # Fallback to dropdown if no button category is active (or if type is specifically selected in dropdown)
+    elif equipment_type != 'ALL':
         query_conditions.append("Equipment_List.Type = ?")
         params.append(equipment_type)
 
@@ -146,6 +173,10 @@ def fetch_equipment_data(conn, availability='All', equipment_type='ALL'):
 # --- 4. SESSION STATE ---
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
+
+# State for Category Buttons
+if 'selected_category' not in st.session_state:
+    st.session_state.selected_category = 'ALL'
 
 # --- 5. SIDEBAR NAVIGATION ---
 st.sidebar.title("🛠️ Lab Manager")
@@ -197,7 +228,7 @@ if selected_page == "View Equipment":
     with get_database_connection() as conn:
         types = fetch_types(conn)
         
-        # --- DASHBOARD SECTION ---
+        # --- A. METRICS & CHART SECTION ---
         try:
             df_all = fetch_equipment_data(conn)
             total = len(df_all)
@@ -213,28 +244,14 @@ if selected_page == "View Equipment":
                     "Count": [avail, loaned]
                 })
 
-                # Create Altair Donut Chart
-                base = alt.Chart(chart_data).encode(
-                    theta=alt.Theta("Count", stack=True)
-                )
-                
+                base = alt.Chart(chart_data).encode(theta=alt.Theta("Count", stack=True))
                 pie = base.mark_arc(innerRadius=60).encode(
                     color=alt.Color("Status", scale=alt.Scale(domain=["Available", "Loaned Out"], range=["#66bb6a", "#ffa726"])),
                     order=alt.Order("Count", sort="descending"),
                     tooltip=["Status", "Count"]
                 )
-                
-                text = base.mark_text(radius=0).encode(
-                    text=alt.value(f"{total}"),
-                    size=alt.value(30),
-                    color=alt.value("#333333") 
-                )
-                
-                text_label = base.mark_text(radius=0, dy=20).encode(
-                    text=alt.value("Assets"),
-                    size=alt.value(12),
-                    color=alt.value("#666666")
-                )
+                text = base.mark_text(radius=0).encode(text=alt.value(f"{total}"), size=alt.value(30), color=alt.value("#333333"))
+                text_label = base.mark_text(radius=0, dy=20).encode(text=alt.value("Assets"), size=alt.value(12), color=alt.value("#666666"))
 
                 st.altair_chart(pie + text + text_label, use_container_width=True)
 
@@ -245,28 +262,67 @@ if selected_page == "View Equipment":
                 display_metric_card_horizontal("On Loan", loaned, "⏳", "#fff3e0")
 
         except Exception as e:
-            st.warning("Could not load metrics. Database might be empty.")
+            st.warning("Could not load metrics.")
             st.error(e)
 
-        st.write("") 
+        st.divider()
         
-        # --- FILTERS & DATAFRAME ---
+        # --- B. CATEGORY CIRCLE BUTTONS ---
+        st.markdown("### 📂 Browse by Category")
+        
+        # Create 6 columns for the buttons
+        cat_c1, cat_c2, cat_c3, cat_c4, cat_c5, cat_c6 = st.columns(6)
+        
+        # Define logic to update session state when clicked
+        def set_category(cat):
+            st.session_state.selected_category = cat
+        
+        with cat_c1:
+            if st.button("💡\nLights"): set_category("Lights")
+        with cat_c2:
+            if st.button("📷\nCamera"): set_category("Camera")
+        with cat_c3:
+            if st.button("📱\nTablet"): set_category("Digital Tablet")
+        with cat_c4:
+            if st.button("🔊\nAudio"): set_category("Audio")
+        with cat_c5:
+            if st.button("🎙️\nMICs"): set_category("MICs (Recording Studio)")
+        with cat_c6:
+            if st.button("📦\nOthers"): set_category("Others")
+
+        # Show currently selected filter
+        if st.session_state.selected_category != 'ALL':
+            st.info(f"Filtering by Category: **{st.session_state.selected_category}**")
+            if st.button("Clear Filter ✖️"):
+                st.session_state.selected_category = 'ALL'
+                st.rerun()
+
+        st.write("") 
+
+        # --- C. FILTERS & TABLE ---
         with st.container(border=True):
             col1, col2 = st.columns([1, 1])
             with col1:
-                selected_type = st.selectbox('Filter by Type', ['ALL'] + types)
+                # If a category button is active, disable the manual dropdown or sync it
+                disabled_dropdown = st.session_state.selected_category != 'ALL'
+                selected_type = st.selectbox('Filter by Type', ['ALL'] + types, disabled=disabled_dropdown)
             with col2:
                 selected_availability = st.selectbox('Filter by Status', ["All", "Available Only", "Loaned Out"])
             
             avail_map = {"All": "All", "Available Only": "Yes", "Loaned Out": "No"}
             
             try:
-                filtered_data = fetch_equipment_data(conn, avail_map[selected_availability], selected_type)
+                # Pass the session state category to the fetch function
+                filtered_data = fetch_equipment_data(
+                    conn, 
+                    avail_map[selected_availability], 
+                    selected_type, 
+                    st.session_state.selected_category
+                )
                 
                 if filtered_data.empty:
                     st.info("No equipment found matching these criteria.")
                 else:
-                    # FOLDABLE TABLE
                     with st.expander("📊 View Detailed Inventory List (Click to Expand/Collapse)", expanded=True):
                         st.dataframe(
                             filtered_data,
@@ -282,18 +338,36 @@ if selected_page == "View Equipment":
             except Exception as e:
                 st.error(f"Database Error: {e}")
 
-    # --- CHATBOT & FLOATING HELP TEXT ---
-    
-    # 1. This DIV creates the speech bubble text "Need Help?" floating at bottom right
-    st.markdown('<div class="floating-message">💬 <b>Need Help?</b><br>Support Assistant</div>', unsafe_allow_html=True)
-    
-    # 2. This loads the Botpress Chatbot
+    # --- CHATBOT WITH CUSTOM LAUNCHER ---
     chatbot_code = """
     <div id="chatbot-container"></div>
+    <div id="custom-chat-trigger" onclick="toggleChat()">
+        <span style="font-size: 20px;">💬</span>
+        <span>Need Help? Support Assistant</span>
+    </div>
     <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
     <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
+    <style>
+        body { background: transparent !important; }
+        .bp-widget-widget { display: none !important; }
+        #custom-chat-trigger {
+            position: fixed; bottom: 25px; right: 25px;
+            background-color: #ffffff; color: #31333F;
+            border: 1px solid #dcdcdc; border-radius: 30px;
+            padding: 12px 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            cursor: pointer; z-index: 99999;
+            font-family: sans-serif; font-size: 15px; font-weight: 600;
+            display: flex; align-items: center; gap: 10px;
+            transition: all 0.3s ease; pointer-events: auto !important;
+        }
+        #custom-chat-trigger:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.2); background-color: #f8f9fa; }
+        .bp-widget-side, .bp-widget-webchat { pointer-events: auto !important; }
+    </style>
+    <script>
+        function toggleChat() { window.botpressWebChat.sendEvent({ type: 'toggle' }); }
+    </script>
     """
-    components.html(chatbot_code, height=600)
+    components.html(chatbot_code, height=800)
 
 
 # === PAGE: LOAN & RETURN ===
