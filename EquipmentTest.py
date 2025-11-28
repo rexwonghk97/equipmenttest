@@ -430,12 +430,6 @@ elif selected_page == "Loan & Return":
 # --- 7. GLOBAL CHATBOT (Loads on ALL pages) ---
 chatbot_code = """
 <div id="chatbot-container"></div>
-
-<!-- REMOVED THE TEXT, NOW IT IS A CIRCULAR BUTTON -->
-<div id="custom-chat-trigger" onclick="toggleChat()">
-    <span style="font-size: 30px;">💬</span>
-</div>
-
 <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
 <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
 <style>
