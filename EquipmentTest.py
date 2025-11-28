@@ -314,14 +314,12 @@ if selected_page == "View Equipment":
                         )
             except Exception as e:
                 st.error(f"Database Error: {e}")
-# --- 7. GLOBAL CHATBOT (Loads on ALL pages) ---
-    st.write("")
-    st.divider()
+    # --- CHATBOT & FLOATING HELP TEXT ---
     
-    # Header Message
-    st.markdown("### 💬 Need Help? Open Support Assistant")
+    # 1. This DIV creates the speech bubble text "Need Help?" floating at bottom right
+    st.markdown('<div class="floating-message">💬 <b>Need Help?</b><br>Support Assistant</div>', unsafe_allow_html=True)
     
-    # Direct HTML embed (No expander)
+    # 2. This loads the Botpress Chatbot
     chatbot_code = """
     <div id="chatbot-container"></div>
     <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
