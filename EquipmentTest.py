@@ -53,7 +53,7 @@ st.markdown("""
         border-radius: 50%;
     }
     
-    /* CATEGORY BUTTON STYLING (ROUNDED/CIRCULAR LOOK) */
+    /* CATEGORY BUTTON STYLING */
     div.stButton > button {
         width: 100%;
         height: 80px;
@@ -78,12 +78,6 @@ st.markdown("""
         border-color: #2196f3;
     }
 
-    /* ROW ITEM STYLING IN LOAN/RETURN */
-    .item-row {
-        padding: 10px 0;
-        border-bottom: 1px solid #f0f0f0;
-    }
-    
     /* FLOATING CHATBOT CONTAINER FIX */
     iframe[height="800"] {
         position: fixed !important;
@@ -100,7 +94,7 @@ st.markdown("""
 
 # --- 3. DATABASE FUNCTIONS ---
 def get_database_connection():
-    return sqlite3.connect('daci_database.db')
+    return sqlite3.connect('Test_equipment_database.db')
 
 # --- API ENDPOINT FOR AI BOT ---
 if st.query_params.get("api") == "true":
@@ -110,6 +104,7 @@ if st.query_params.get("api") == "true":
         SELECT 
             Equipment_List.Name, 
             Equipment_List.Brand, 
+            Equipment_List.Category,
             Loan_History.Availability 
         FROM Equipment_List
         JOIN Loan_History ON Equipment_List.Equipment_ID = Loan_History.Equipment_ID
@@ -136,18 +131,18 @@ def fetch_equipment_data(conn, availability='All', equipment_type='ALL', categor
         query_conditions.append('Loan_History.Availability = ?')
         params.append(availability)
 
-    # 2. Type/Category Filter
-    # If the user clicks a Category Button, it overrides the dropdown
+    # 2. Category Filter (Buttons)
+    # IMPORTANT: We now query the 'Category' column, NOT the 'Type' column.
     if category_filter != 'ALL':
         if category_filter == 'Others':
-            # Logic for "Others": Select items NOT IN the known 5 categories
-            query_conditions.append("Equipment_List.Type NOT IN ('Lights', 'Camera', 'Digital Tablet', 'Audio', 'MICs (Recording Studio)')")
+            # Select items where Category is NOT one of the main 5
+            query_conditions.append("Equipment_List.Category NOT IN ('Lights', 'Camera', 'Digital Tablet', 'Audio', 'MICs (Recording Studio)')")
         else:
-            # Logic for Specific Category
-            query_conditions.append("Equipment_List.Type = ?")
+            # Select specific Category
+            query_conditions.append("Equipment_List.Category = ?")
             params.append(category_filter)
     
-    # Fallback to dropdown if no button category is active (or if type is specifically selected in dropdown)
+    # 3. Type Filter (Dropdown Fallback)
     elif equipment_type != 'ALL':
         query_conditions.append("Equipment_List.Type = ?")
         params.append(equipment_type)
@@ -157,6 +152,7 @@ def fetch_equipment_data(conn, availability='All', equipment_type='ALL', categor
     query = f"""
     SELECT 
         Equipment_List.Equipment_ID AS ID,
+        Equipment_List.Category, -- Added Category for visibility
         Equipment_List.Type,
         Equipment_List.Name,
         Equipment_List.Brand,
@@ -174,7 +170,6 @@ def fetch_equipment_data(conn, availability='All', equipment_type='ALL', categor
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 
-# State for Category Buttons
 if 'selected_category' not in st.session_state:
     st.session_state.selected_category = 'ALL'
 
@@ -270,13 +265,12 @@ if selected_page == "View Equipment":
         # --- B. CATEGORY CIRCLE BUTTONS ---
         st.markdown("### 📂 Browse by Category")
         
-        # Create 6 columns for the buttons
         cat_c1, cat_c2, cat_c3, cat_c4, cat_c5, cat_c6 = st.columns(6)
         
-        # Define logic to update session state when clicked
         def set_category(cat):
             st.session_state.selected_category = cat
-        
+
+        # IMPORTANT: These buttons now map to the 'Category' column in DB
         with cat_c1:
             if st.button("💡\nLights"): set_category("Lights")
         with cat_c2:
@@ -303,7 +297,7 @@ if selected_page == "View Equipment":
         with st.container(border=True):
             col1, col2 = st.columns([1, 1])
             with col1:
-                # If a category button is active, disable the manual dropdown or sync it
+                # Disable Type dropdown if Category Button is active
                 disabled_dropdown = st.session_state.selected_category != 'ALL'
                 selected_type = st.selectbox('Filter by Type', ['ALL'] + types, disabled=disabled_dropdown)
             with col2:
@@ -312,7 +306,7 @@ if selected_page == "View Equipment":
             avail_map = {"All": "All", "Available Only": "Yes", "Loaned Out": "No"}
             
             try:
-                # Pass the session state category to the fetch function
+                # FETCH DATA using the Category Column Logic
                 filtered_data = fetch_equipment_data(
                     conn, 
                     avail_map[selected_availability], 
