@@ -315,78 +315,94 @@ if selected_page == "View Equipment":
             except Exception as e:
                 st.error(f"Database Error: {e}")
 
-    # --- CHATBOT SECTION (FIXED) ---
-    # We combine the "Custom Button" and the "Botpress Script" into ONE HTML block.
-    # This prevents layout conflicts.
-    
+   # --- CHATBOT SECTION (FIXED) ---
     chatbot_code = """
-    <!-- 1. The Container for the Chat Window -->
     <div id="chatbot-container"></div>
-    
-    <!-- 2. The Custom Button (Visible) -->
+
+    <!-- CUSTOM LAUNCHER BUTTON -->
     <div id="custom-chat-trigger" onclick="toggleChat()">
-        <span style="font-size: 20px;">💬</span>
+        <!-- Message Icon -->
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
         <span>Need Help? Support Assistant</span>
     </div>
 
-    <!-- 3. Botpress Scripts -->
+    <!-- Botpress Scripts -->
     <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
     <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
     
-    <!-- 4. Styling -->
     <style>
-        /* Body transparent so we can see Streamlit behind */
-        body { background: transparent !important; }
-
-        /* HIDE the default red circular button */
-        .bp-widget-widget {
-            display: none !important;
+        /* 1. Make the iframe background transparent */
+        body, html { 
+            background: transparent !important; 
+            overflow: hidden; /* Prevent scrollbars inside the iframe */
         }
 
-        /* STYLE the custom button */
+        /* 2. AGGRESSIVELY HIDE THE DEFAULT RED BUTTON */
+        /* We target multiple potential class names Botpress uses */
+        .bp-widget-widget, 
+        .bp-widget-launcher,
+        button[aria-label="Open Webchat"],
+        div[class*="bp-widget-launcher"] {
+            display: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+
+        /* 3. STYLE THE CUSTOM BUTTON */
         #custom-chat-trigger {
             position: fixed;
-            bottom: 25px;
-            right: 25px;
+            bottom: 20px;
+            right: 20px;
             background-color: #ffffff;
-            color: #31333F;
-            border: 1px solid #dcdcdc;
-            border-radius: 30px; /* Pill Shape */
-            padding: 12px 24px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            color: #1f2937; /* Dark Grey Text */
+            border: 1px solid #e5e7eb;
+            border-radius: 9999px; /* Pill Shape */
+            padding: 12px 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             cursor: pointer;
-            z-index: 99999;
-            font-family: sans-serif;
-            font-size: 15px;
+            z-index: 999999;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 14px;
             font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 10px;
-            transition: all 0.3s ease;
+            gap: 8px;
+            transition: all 0.2s ease;
             pointer-events: auto !important; /* Make this clickable */
         }
         
         #custom-chat-trigger:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
-            background-color: #f8f9fa;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            background-color: #f9fafb;
         }
         
-        /* Allow clicking inside the chat window when it's open */
+        #custom-chat-trigger:active {
+            transform: translateY(0);
+        }
+
+        /* 4. Ensure the actual chat window is clickable */
         .bp-widget-side, .bp-widget-webchat {
             pointer-events: auto !important;
         }
     </style>
 
-    <!-- 5. Function to open/close chat -->
     <script>
+        // Function to toggle the chat
         function toggleChat() {
-            window.botpressWebChat.sendEvent({ type: 'toggle' });
+            if (window.botpressWebChat) {
+                window.botpressWebChat.sendEvent({ type: 'toggle' });
+            }
         }
     </script>
     """
     
-    # We use height=600 to match the CSS selector at the top of the file
+    # Render with height=600 to match the CSS selector in st.markdown
     components.html(chatbot_code, height=600)
     
 elif selected_page == "Loan & Return":
