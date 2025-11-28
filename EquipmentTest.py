@@ -430,7 +430,7 @@ elif selected_page == "Loan & Return":
 # --- 7. GLOBAL CHATBOT (Loads on ALL pages) ---
 chatbot_code = """
 <div id="chatbot-container"></div>
-<script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
+<script src="https://cdn.botpress.cloud/webchat/v3.3/inject.js" defer></script>
 <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
 <style>
     /* 1. Make the body of the iframe transparent so we see the website behind it */
