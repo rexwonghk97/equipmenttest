@@ -430,80 +430,17 @@ elif selected_page == "Loan & Return":
                 st.info("No items loaned out.")
 
 # --- 7. GLOBAL CHATBOT (Loads on ALL pages) ---
-chatbot_code = """
-<div id="chatbot-container"></div>
-
-<!-- 1. The Floating Message Container (Now Fixed on Screen) -->
-<div id="chat-label">
-    💬 Need Help? Scroll Down to find Support Assistant Bot
-</div>
-
-<!-- 2. The Floating Button (Fixed on Screen) -->
-<div id="custom-chat-trigger" onclick="toggleChat()">
-    <span style="font-size: 30px;">💬</span>
-</div>
-
-<script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
-<script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
-<style>
-    /* 1. Transparent background for iframe body */
-    body { background: transparent !important; }
+    st.write("")
+    st.divider()
     
-    /* 2. Hide default launcher */
-    .bp-widget-widget { display: none !important; }
-
-    /* 3. Message Bubble Styling */
-    #chat-label {
-        position: fixed;
-        bottom: 35px; /* Aligns with button */
-        right: 95px; /* To the left of the button */
-        background-color: #ffffff;
-        color: #333;
-        padding: 10px 15px;
-        border-radius: 20px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        font-family: sans-serif;
-        font-size: 13px;
-        font-weight: 600;
-        z-index: 999999;
-        pointer-events: auto !important; /* Enable clicks */
-        white-space: nowrap;
-        border: 1px solid #e0e0e0;
-    }
-
-    /* 4. Circular Button Styling */
-    #custom-chat-trigger {
-        position: fixed; 
-        bottom: 25px; 
-        right: 25px;
-        background-color: #2196f3; 
-        color: white;
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-        cursor: pointer; 
-        z-index: 999999;
-        transition: all 0.3s ease; 
-        pointer-events: auto !important;
-    }
+    # Header Message
+    st.markdown("### 💬 Need Help? Open Support Assistant")
     
-    #custom-chat-trigger:hover { 
-        transform: scale(1.1); 
-        box-shadow: 0 6px 16px rgba(0,0,0,0.3); 
-    }
-    
-    .bp-widget-side, .bp-widget-webchat { 
-        pointer-events: auto !important; 
-    }
-</style>
-<script>
-    function toggleChat() { window.botpressWebChat.sendEvent({ type: 'toggle' }); }
-</script>
-"""
-# NOTE: We use height=600 here to match the CSS selector 'iframe[height="600"]'
-# This ensures the iframe is targeted correctly and pinned to the viewport.
-components.html(chatbot_code, height=600)
+    # Direct HTML embed (No expander)
+    chatbot_code = """
+    <div id="chatbot-container"></div>
+    <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
+    <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
+    """
+    components.html(chatbot_code, height=600)
+
