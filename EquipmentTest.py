@@ -278,11 +278,11 @@ if selected_page == "View Equipment":
         with cat_c3:
             if st.button("📱\nTablet"): set_category("Digital Tablet")
         with cat_c4:
-            if st.button("🔊\nAudio"): set_category("Audios")
+            if st.button("🔊\nAudio"): set_category("Audio")
         # --- FIXED SECTION START ---
         with cat_c5:
-            # Renamed to "Microphone" and selects "MICs (Recording Studio)"
-            if st.button("🎙️\nMicrophone"): set_category("MICs (Recording Studio)")
+            # Renamed to "VR Headset" and selects "VR Headset"
+            if st.button("🥽\nVR Headset"): set_category("VR Headset")
         # --- FIXED SECTION END ---
         with cat_c6:
             if st.button("📦\nOthers"): set_category("Others")
