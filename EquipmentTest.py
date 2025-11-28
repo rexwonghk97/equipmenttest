@@ -388,7 +388,7 @@ chatbot_code = """
 components.html(chatbot_code, height=800)
 
 # === PAGE: LOAN & RETURN ===
-elif selected_page == "Loan & Return":
+ elif selected_page == "Loan & Return":
     st.title("📑 Equipment Loan & Return")
     with get_database_connection() as conn:
         types = fetch_types(conn)
