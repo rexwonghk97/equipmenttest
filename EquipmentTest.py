@@ -278,7 +278,7 @@ if selected_page == "View Equipment":
         with cat_c3:
             if st.button("📱\nTablet"): set_category("Digital Tablet")
         with cat_c4:
-            if st.button("🔊\nAudio"): set_category("Audio")
+            if st.button("🔊\nAudio"): set_category("Audios")
         # --- FIXED SECTION START ---
         with cat_c5:
             # Renamed to "Microphone" and selects "MICs (Recording Studio)"
