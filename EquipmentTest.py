@@ -503,4 +503,4 @@ chatbot_code = """
 </script>
 """
 # We place this at the very end so it renders over everything regardless of which page is selected
-components.html(chatbot_code, height=800)
+components.html(chatbot_code, height=600)
