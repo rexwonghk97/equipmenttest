@@ -317,7 +317,7 @@ elif selected_page == "Loan & Return":
     st.title("📑 Equipment Loan & Return")
     with get_database_connection() as conn:
         types = fetch_types(conn)
-        tab_loan, tab_return = st.tabs(["📤 Loan Out", "📥 Return Item"])
+        tab_loan, tab_return = st.tabs(["⬆️ Loan Out", "⬇️ Return Item"])
 
         with tab_loan:
             st.subheader("Process New Loan")
@@ -410,7 +410,7 @@ elif selected_page == "Loan & Return":
                             st.markdown("<hr style='margin: 5px 0; opacity: 0.3;'>", unsafe_allow_html=True)
 
                     st.write("")
-                    submitted_return = st.form_submit_button("Confirm Return 📥", type="primary")
+                    submitted_return = st.form_submit_button("Confirm Return ✅", type="primary")
 
                     if submitted_return:
                         if selected_return_ids:
