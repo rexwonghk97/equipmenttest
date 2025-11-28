@@ -314,7 +314,21 @@ if selected_page == "View Equipment":
                         )
             except Exception as e:
                 st.error(f"Database Error: {e}")
-
+# --- 7. GLOBAL CHATBOT (Loads on ALL pages) ---
+    st.write("")
+    st.divider()
+    
+    # Header Message
+    st.markdown("### 💬 Need Help? Open Support Assistant")
+    
+    # Direct HTML embed (No expander)
+    chatbot_code = """
+    <div id="chatbot-container"></div>
+    <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
+    <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
+    """
+    components.html(chatbot_code, height=600)
+    
 elif selected_page == "Loan & Return":
     st.title("📑 Equipment Loan & Return")
     with get_database_connection() as conn:
@@ -428,19 +442,4 @@ elif selected_page == "Loan & Return":
                             st.warning("Select at least one item.")
             else:
                 st.info("No items loaned out.")
-
-# --- 7. GLOBAL CHATBOT (Loads on ALL pages) ---
-    st.write("")
-    st.divider()
-    
-    # Header Message
-    st.markdown("### 💬 Need Help? Open Support Assistant")
-    
-    # Direct HTML embed (No expander)
-    chatbot_code = """
-    <div id="chatbot-container"></div>
-    <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
-    <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
-    """
-    components.html(chatbot_code, height=600)
 
