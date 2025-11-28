@@ -132,10 +132,10 @@ def fetch_equipment_data(conn, availability='All', equipment_type='ALL', categor
         params.append(availability)
 
     # 2. Category Filter (Buttons)
-    # IMPORTANT: We now query the 'Category' column, NOT the 'Type' column.
     if category_filter != 'ALL':
         if category_filter == 'Others':
             # Select items where Category is NOT one of the main 5
+            # Ensure "MICs (Recording Studio)" is listed here so it is EXCLUDED from 'Others'
             query_conditions.append("Equipment_List.Category NOT IN ('Lights', 'Camera', 'Digital Tablet', 'Audio', 'MICs (Recording Studio)')")
         else:
             # Select specific Category
@@ -152,7 +152,7 @@ def fetch_equipment_data(conn, availability='All', equipment_type='ALL', categor
     query = f"""
     SELECT 
         Equipment_List.Equipment_ID AS ID,
-        Equipment_List.Category, -- Added Category for visibility
+        Equipment_List.Category, 
         Equipment_List.Type,
         Equipment_List.Name,
         Equipment_List.Brand,
@@ -270,7 +270,7 @@ if selected_page == "View Equipment":
         def set_category(cat):
             st.session_state.selected_category = cat
 
-        # IMPORTANT: These buttons now map to the 'Category' column in DB
+        # Buttons map to the 'Category' column in DB
         with cat_c1:
             if st.button("💡\nLights"): set_category("Lights")
         with cat_c2:
@@ -279,8 +279,11 @@ if selected_page == "View Equipment":
             if st.button("📱\nTablet"): set_category("Digital Tablet")
         with cat_c4:
             if st.button("🔊\nAudio"): set_category("Audio")
+        # --- FIXED SECTION START ---
         with cat_c5:
-            if st.button("🎙️\nMICs"): set_category("MICs (Recording Studio)")
+            # Renamed to "Microphone" and selects "MICs (Recording Studio)"
+            if st.button("🎙️\nMicrophone"): set_category("MICs (Recording Studio)")
+        # --- FIXED SECTION END ---
         with cat_c6:
             if st.button("📦\nOthers"): set_category("Others")
 
