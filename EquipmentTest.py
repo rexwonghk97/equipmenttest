@@ -78,7 +78,8 @@ st.markdown("""
         border-color: #2196f3;
     }
 
-    /* FLOATING CHATBOT CONTAINER FIX */
+    /* --- FLOATING CHATBOT OVERLAY FIX --- */
+    /* This targets the specific iframe created by components.html(height=800) */
     iframe[height="800"] {
         position: fixed !important;
         top: 0 !important;
@@ -87,7 +88,8 @@ st.markdown("""
         height: 100vh !important;
         z-index: 999999 !important;
         border: none !important;
-        pointer-events: none !important;
+        /* Crucial: lets clicks pass through the empty parts of the iframe */
+        pointer-events: none !important; 
     }
     </style>
     """, unsafe_allow_html=True)
@@ -134,11 +136,8 @@ def fetch_equipment_data(conn, availability='All', equipment_type='ALL', categor
     # 2. Category Filter (Buttons)
     if category_filter != 'ALL':
         if category_filter == 'Others':
-            # Select items where Category is NOT one of the main 5
-            # Ensure "MICs (Recording Studio)" is listed here so it is EXCLUDED from 'Others'
             query_conditions.append("Equipment_List.Category NOT IN ('Lights', 'Camera', 'Digital Tablet', 'Audio', 'MICs (Recording Studio)')")
         else:
-            # Select specific Category
             query_conditions.append("Equipment_List.Category = ?")
             params.append(category_filter)
     
@@ -233,7 +232,6 @@ if selected_page == "View Equipment":
             chart_col, metrics_col = st.columns([1.5, 1])
             
             with chart_col:
-                # Prepare data
                 chart_data = pd.DataFrame({
                     "Status": ["Available", "Loaned Out"],
                     "Count": [avail, loaned]
@@ -270,7 +268,6 @@ if selected_page == "View Equipment":
         def set_category(cat):
             st.session_state.selected_category = cat
 
-        # Buttons map to the 'Category' column in DB
         with cat_c1:
             if st.button("💡\nLights"): set_category("Lights")
         with cat_c2:
@@ -279,15 +276,11 @@ if selected_page == "View Equipment":
             if st.button("📱\nTablet"): set_category("Digital Tablet")
         with cat_c4:
             if st.button("🔊\nAudio"): set_category("Audio")
-        # --- FIXED SECTION START ---
         with cat_c5:
-            # Renamed to "VR Headset" and selects "VR Headset"
             if st.button("🥽\nVR Headset"): set_category("VR Headset")
-        # --- FIXED SECTION END ---
         with cat_c6:
             if st.button("📦\nOthers"): set_category("Others")
 
-        # Show currently selected filter
         if st.session_state.selected_category != 'ALL':
             st.info(f"Filtering by Category: **{st.session_state.selected_category}**")
             if st.button("Clear Filter ✖️"):
@@ -300,7 +293,6 @@ if selected_page == "View Equipment":
         with st.container(border=True):
             col1, col2 = st.columns([1, 1])
             with col1:
-                # Disable Type dropdown if Category Button is active
                 disabled_dropdown = st.session_state.selected_category != 'ALL'
                 selected_type = st.selectbox('Filter by Type', ['ALL'] + types, disabled=disabled_dropdown)
             with col2:
@@ -309,7 +301,6 @@ if selected_page == "View Equipment":
             avail_map = {"All": "All", "Available Only": "Yes", "Loaned Out": "No"}
             
             try:
-                # FETCH DATA using the Category Column Logic
                 filtered_data = fetch_equipment_data(
                     conn, 
                     avail_map[selected_availability], 
@@ -334,37 +325,6 @@ if selected_page == "View Equipment":
                         )
             except Exception as e:
                 st.error(f"Database Error: {e}")
-
-    # --- CHATBOT WITH CUSTOM LAUNCHER ---
-    chatbot_code = """
-    <div id="chatbot-container"></div>
-    <div id="custom-chat-trigger" onclick="toggleChat()">
-        <span style="font-size: 20px;">💬</span>
-        <span>Need Help? Support Assistant</span>
-    </div>
-    <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
-    <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
-    <style>
-        body { background: transparent !important; }
-        .bp-widget-widget { display: none !important; }
-        #custom-chat-trigger {
-            position: fixed; bottom: 25px; right: 25px;
-            background-color: #ffffff; color: #31333F;
-            border: 1px solid #dcdcdc; border-radius: 30px;
-            padding: 12px 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            cursor: pointer; z-index: 99999;
-            font-family: sans-serif; font-size: 15px; font-weight: 600;
-            display: flex; align-items: center; gap: 10px;
-            transition: all 0.3s ease; pointer-events: auto !important;
-        }
-        #custom-chat-trigger:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.2); background-color: #f8f9fa; }
-        .bp-widget-side, .bp-widget-webchat { pointer-events: auto !important; }
-    </style>
-    <script>
-        function toggleChat() { window.botpressWebChat.sendEvent({ type: 'toggle' }); }
-    </script>
-    """
-    components.html(chatbot_code, height=800)
 
 
 # === PAGE: LOAN & RETURN ===
@@ -485,3 +445,62 @@ elif selected_page == "Loan & Return":
                             st.warning("Select at least one item.")
             else:
                 st.info("No items loaned out.")
+
+# --- 7. GLOBAL CHATBOT (Loads on ALL pages) ---
+chatbot_code = """
+<div id="chatbot-container"></div>
+<div id="custom-chat-trigger" onclick="toggleChat()">
+    <span style="font-size: 20px;">💬</span>
+    <span>Need Help? Support Assistant</span>
+</div>
+<script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
+<script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
+<style>
+    /* Ensure the body inside the iframe is transparent */
+    body { background: transparent !important; }
+    
+    /* Hide the default Botpress widget trigger if needed */
+    .bp-widget-widget { display: none !important; }
+
+    /* Custom Trigger Button Styling */
+    #custom-chat-trigger {
+        position: fixed; 
+        bottom: 25px; 
+        right: 25px;
+        background-color: #ffffff; 
+        color: #31333F;
+        border: 1px solid #dcdcdc; 
+        border-radius: 30px;
+        padding: 12px 24px; 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        cursor: pointer; 
+        z-index: 999999;
+        font-family: sans-serif; 
+        font-size: 15px; 
+        font-weight: 600;
+        display: flex; 
+        align-items: center; 
+        gap: 10px;
+        transition: all 0.3s ease; 
+        
+        /* IMPORTANT: This re-enables clicks for the button */
+        pointer-events: auto !important;
+    }
+    
+    #custom-chat-trigger:hover { 
+        transform: translateY(-2px); 
+        box-shadow: 0 6px 16px rgba(0,0,0,0.2); 
+        background-color: #f8f9fa; 
+    }
+    
+    /* Re-enable clicks for the actual chat window when opened */
+    .bp-widget-side, .bp-widget-webchat { 
+        pointer-events: auto !important; 
+    }
+</style>
+<script>
+    function toggleChat() { window.botpressWebChat.sendEvent({ type: 'toggle' }); }
+</script>
+"""
+# We place this at the very end so it renders over everything regardless of which page is selected
+components.html(chatbot_code, height=800)
