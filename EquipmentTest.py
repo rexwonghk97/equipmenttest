@@ -388,7 +388,7 @@ chatbot_code = """
 components.html(chatbot_code, height=800)
 
 # === PAGE: LOAN & RETURN ===
- elif selected_page == "Loan & Return":
+elif selected_page == "Loan & Return":
     st.title("📑 Equipment Loan & Return")
     with get_database_connection() as conn:
         types = fetch_types(conn)
@@ -410,6 +410,59 @@ components.html(chatbot_code, height=800)
                     st.markdown("### Select Items to Loan")
                     st.caption("Check the box on the left to select an item.")
 
+                    h1, h2, h3, h4 = st.columns([0.5, 2.5, 2, 2])
+                    h1.markdown("**Select**")
+                    h2.markdown("**Equipment**")
+                    h3.markdown("**Details**")
+                    h4.markdown("**Status**")
+                    st.divider()
+
+                    selected_ids = []
+                    with st.container(height=400):
+                        for index, row in available_data.iterrows():
+                            c1, c2, c3, c4 = st.columns([0.5, 2.5, 2, 2])
+                            with c1:
+                                is_checked = st.checkbox("", key=f"loan_chk_{row['ID']}")
+                                if is_checked:
+                                    selected_ids.append(row['ID'])
+                            with c2:
+                                st.markdown(f"**{row['Name']}**")
+                                st.caption(f"ID: {row['ID']}")
+                            with c3:
+                                st.text(f"Brand: {row['Brand']}")
+                                st.text(f"Type:  {row['Type']}")
+                            with c4:
+                                st.markdown(f"Qty: **{row['Qty']}**")
+                                st.caption(f"Created: {row['Created_Date']}")
+                            st.markdown("<hr style='margin: 5px 0; opacity: 0.3;'>", unsafe_allow_html=True)
+
+                    st.write("")
+                    submitted_loan = st.form_submit_button("Confirm Loan ✅", type="primary")
+
+                    if submitted_loan:
+                        if selected_ids:
+                            try:
+                                for equipment_id in selected_ids:
+                                    conn.execute("UPDATE Loan_History SET Availability = 'No', Loan_From = ? WHERE Equipment_ID = ?", (loan_date, equipment_id))
+                                conn.commit()
+                                st.toast(f"Success! Loaned {len(selected_ids)} items.", icon="✅")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Error: {e}")
+                        else:
+                            st.warning("Select at least one item.")
+            else:
+                st.info("No items available.")
+
+        # --- RETURN TAB ---
+        with tab_return:
+            st.subheader("Process Return")
+            return_type_filter = st.selectbox("Filter by Type", ['ALL'] + types, key="return_type")
+            unavailable_data = fetch_equipment_data(conn, 'No', return_type_filter)
+
+            if not unavailable_data.empty:
+                with st.form("return_form"):
+                    st.markdown("### Select Items to Return")
                     h1, h2, h3, h4 = st.columns([0.5, 2.5, 2, 2])
                     h1.markdown("**Select**")
                     h2.markdown("**Equipment**")
