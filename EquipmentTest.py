@@ -14,7 +14,6 @@ st.set_page_config(
 )
 
 # --- 2. CUSTOM CSS ---
-# NOTE: This CSS applies to the MAIN STREAMLIT PAGE
 st.markdown("""
 <style>
 /* MAIN CONTAINER PADDING */
@@ -80,10 +79,13 @@ div.stButton > button:focus {
 }
 
 /* 
-   FLOATING CHATBOT OVERLAY (THE IFRAME ITSELF)
-   This moves the entire iframe to cover the screen but allows click-through.
+   -----------------------------------------------------------------------
+   FLOATING CHATBOT CONTAINER FIX
+   -----------------------------------------------------------------------
+   We use height="600" in the Python code below to identify this specific iframe.
+   This CSS forces that iframe to be fixed to the viewport, overlaying the content.
 */
-iframe[height="800"] {
+iframe[height="600"] {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
@@ -91,7 +93,7 @@ iframe[height="800"] {
     height: 100vh !important;
     z-index: 999999 !important;
     border: none !important;
-    pointer-events: none !important; /* Lets you click buttons behind the chat overlay */
+    pointer-events: none !important; /* Click-through for the background */
 }
 </style>
 """, unsafe_allow_html=True)
@@ -431,12 +433,12 @@ elif selected_page == "Loan & Return":
 chatbot_code = """
 <div id="chatbot-container"></div>
 
-<!-- 1. The Floating Message Container -->
+<!-- 1. The Floating Message Container (Now Fixed on Screen) -->
 <div id="chat-label">
     💬 Need Help? Scroll Down to find Support Assistant Bot
 </div>
 
-<!-- 2. The Floating Button -->
+<!-- 2. The Floating Button (Fixed on Screen) -->
 <div id="custom-chat-trigger" onclick="toggleChat()">
     <span style="font-size: 30px;">💬</span>
 </div>
@@ -444,39 +446,39 @@ chatbot_code = """
 <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
 <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
 <style>
-    /* Make the body of the iframe transparent so we see the website behind it */
+    /* 1. Transparent background for iframe body */
     body { background: transparent !important; }
     
-    /* Hide the default Botpress launcher */
+    /* 2. Hide default launcher */
     .bp-widget-widget { display: none !important; }
 
-    /* STYLE FOR THE TEXT LABEL */
+    /* 3. Message Bubble Styling */
     #chat-label {
         position: fixed;
-        bottom: 35px; /* Aligns roughly with center of button */
-        right: 100px; /* Position to the left of the button */
+        bottom: 35px; /* Aligns with button */
+        right: 95px; /* To the left of the button */
         background-color: #ffffff;
         color: #333;
         padding: 10px 15px;
         border-radius: 20px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         font-family: sans-serif;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 600;
         z-index: 999999;
-        pointer-events: auto !important;
-        white-space: nowrap; /* Keep text on one line */
+        pointer-events: auto !important; /* Enable clicks */
+        white-space: nowrap;
         border: 1px solid #e0e0e0;
     }
 
-    /* STYLE FOR THE CIRCULAR BUTTON */
+    /* 4. Circular Button Styling */
     #custom-chat-trigger {
         position: fixed; 
         bottom: 25px; 
         right: 25px;
-        background-color: #2196f3; /* Blue background */
+        background-color: #2196f3; 
         color: white;
-        border-radius: 50%; /* Circle */
+        border-radius: 50%;
         width: 60px;
         height: 60px;
         display: flex;
@@ -494,7 +496,6 @@ chatbot_code = """
         box-shadow: 0 6px 16px rgba(0,0,0,0.3); 
     }
     
-    /* Ensure the actual chat window is clickable when open */
     .bp-widget-side, .bp-widget-webchat { 
         pointer-events: auto !important; 
     }
@@ -503,4 +504,6 @@ chatbot_code = """
     function toggleChat() { window.botpressWebChat.sendEvent({ type: 'toggle' }); }
 </script>
 """
-components.html(chatbot_code, height=800)
+# NOTE: We use height=600 here to match the CSS selector 'iframe[height="600"]'
+# This ensures the iframe is targeted correctly and pinned to the viewport.
+components.html(chatbot_code, height=600)
