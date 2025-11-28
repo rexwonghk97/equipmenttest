@@ -15,97 +15,103 @@ st.set_page_config(
 
 # --- 2. CUSTOM CSS ---
 st.markdown("""
-    <style>
-    /* MAIN CONTAINER PADDING */
-    .block-container {
-        padding-top: 1.5rem;
-    }
+<style>
+/* MAIN CONTAINER PADDING */
+.block-container {
+    padding-top: 1.5rem;
+}
 
-    /* CUSTOM METRIC CARDS */
-    .metric-card-container {
-        background-color: #ffffff;
-        border: 1px solid #e0e0e0;
-        border-radius: 12px;
-        padding: 15px;
-        margin-bottom: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-    }
-    .metric-info {
-        text-align: left;
-    }
-    .metric-title {
-        color: #6c757d;
-        font-size: 0.85rem;
-        font-weight: 600;
-        text-transform: uppercase;
-    }
-    .metric-value {
-        color: #212529;
-        font-size: 1.8rem;
-        font-weight: 700;
-    }
-    .metric-icon {
-        font-size: 2rem;
-        padding: 12px;
-        border-radius: 50%;
-    }
-    
-    /* CATEGORY BUTTON STYLING */
-    div.stButton > button {
-        width: 100%;
-        height: 80px;
-        border-radius: 20px;
-        border: 1px solid #e0e0e0;
-        background-color: #f8f9fa;
-        color: #333;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-    div.stButton > button:hover {
-        background-color: #e3f2fd;
-        border-color: #2196f3;
-        transform: translateY(-3px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        color: #2196f3;
-    }
-    div.stButton > button:focus {
-        background-color: #2196f3;
-        color: white;
-        border-color: #2196f3;
-    }
+/* CUSTOM METRIC CARDS */
+.metric-card-container {
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.metric-info {
+    text-align: left;
+}
+.metric-title {
+    color: #6c757d;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+.metric-value {
+    color: #212529;
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+.metric-icon {
+    font-size: 2rem;
+    padding: 12px;
+    border-radius: 50%;
+}
 
-    /* FLOATING CHATBOT CONTAINER FIX */
-    iframe[height="800"] {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
-        z-index: 999999 !important;
-        border: none !important;
-        pointer-events: none !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+/* CATEGORY BUTTON STYLING */
+div.stButton > button {
+    width: 100%;
+    height: 80px;
+    border-radius: 20px;
+    border: 1px solid #e0e0e0;
+    background-color: #f8f9fa;
+    color: #333;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+div.stButton > button:hover {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    color: #2196f3;
+}
+div.stButton > button:focus {
+    background-color: #2196f3;
+    color: white;
+    border-color: #2196f3;
+}
+
+/* 
+   -----------------------------------------------------------------------
+   FLOATING CHATBOT CONTAINER FIX
+   -----------------------------------------------------------------------
+   We use height="600" in the Python code below to identify this specific iframe.
+   This CSS forces that iframe to be fixed to the viewport, overlaying the content.
+*/
+iframe[height="600"] {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 999999 !important;
+    border: none !important;
+    pointer-events: none !important; /* Click-through for the background */
+}
+</style>
+""", unsafe_allow_html=True)
 
 # --- 3. DATABASE FUNCTIONS ---
 def get_database_connection():
-    return sqlite3.connect('Test_equipment_database.db')
+    return sqlite3.connect('daci_database.db')
 
 # --- API ENDPOINT FOR AI BOT ---
 if st.query_params.get("api") == "true":
     try:
         conn = get_database_connection()
         query = """
-        SELECT 
-            Equipment_List.Name, 
-            Equipment_List.Brand, 
-            Equipment_List.Category,
-            Loan_History.Availability 
+        SELECT
+        Equipment_List.Name,
+        Equipment_List.Brand,
+        Equipment_List.Category,
+        Loan_History.Availability
         FROM Equipment_List
         JOIN Loan_History ON Equipment_List.Equipment_ID = Loan_History.Equipment_ID
         """
@@ -125,24 +131,16 @@ def fetch_types(conn):
 def fetch_equipment_data(conn, availability='All', equipment_type='ALL', category_filter='ALL'):
     query_conditions = []
     params = []
-
-    # 1. Availability Filter
     if availability != 'All':
         query_conditions.append('Loan_History.Availability = ?')
         params.append(availability)
 
-    # 2. Category Filter (Buttons)
-    # IMPORTANT: We now query the 'Category' column, NOT the 'Type' column.
     if category_filter != 'ALL':
         if category_filter == 'Others':
-            # Select items where Category is NOT one of the main 5
             query_conditions.append("Equipment_List.Category NOT IN ('Lights', 'Camera', 'Digital Tablet', 'Audio', 'MICs (Recording Studio)')")
         else:
-            # Select specific Category
             query_conditions.append("Equipment_List.Category = ?")
             params.append(category_filter)
-    
-    # 3. Type Filter (Dropdown Fallback)
     elif equipment_type != 'ALL':
         query_conditions.append("Equipment_List.Type = ?")
         params.append(equipment_type)
@@ -152,7 +150,7 @@ def fetch_equipment_data(conn, availability='All', equipment_type='ALL', categor
     query = f"""
     SELECT 
         Equipment_List.Equipment_ID AS ID,
-        Equipment_List.Category, -- Added Category for visibility
+        Equipment_List.Category, 
         Equipment_List.Type,
         Equipment_List.Name,
         Equipment_List.Brand,
@@ -169,13 +167,11 @@ def fetch_equipment_data(conn, availability='All', equipment_type='ALL', categor
 # --- 4. SESSION STATE ---
 if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
-
 if 'selected_category' not in st.session_state:
     st.session_state.selected_category = 'ALL'
 
 # --- 5. SIDEBAR NAVIGATION ---
 st.sidebar.title("🛠️ Lab Manager")
-
 if not st.session_state.authenticated:
     with st.sidebar.expander("🔐 Staff Login", expanded=True):
         with st.form("login_form"):
@@ -198,7 +194,6 @@ else:
 
 selected_page = st.sidebar.radio("Navigation", page_options)
 
-
 # --- HELPER FUNCTION FOR METRIC CARDS ---
 def display_metric_card_horizontal(title, value, icon, color_bg):
     st.markdown(f"""
@@ -213,27 +208,22 @@ def display_metric_card_horizontal(title, value, icon, color_bg):
     </div>
     """, unsafe_allow_html=True)
 
-
 # --- 6. MAIN PAGE LOGIC ---
-
-# === PAGE: VIEW EQUIPMENT ===
 if selected_page == "View Equipment":
     st.title("🔎 Equipment Inventory")
-    
+
     with get_database_connection() as conn:
         types = fetch_types(conn)
-        
-        # --- A. METRICS & CHART SECTION ---
+
         try:
             df_all = fetch_equipment_data(conn)
             total = len(df_all)
             avail = len(df_all[df_all['Availability'] == 'Yes'])
             loaned = len(df_all[df_all['Availability'] == 'No'])
-            
+
             chart_col, metrics_col = st.columns([1.5, 1])
-            
+
             with chart_col:
-                # Prepare data
                 chart_data = pd.DataFrame({
                     "Status": ["Available", "Loaned Out"],
                     "Count": [avail, loaned]
@@ -262,15 +252,12 @@ if selected_page == "View Equipment":
 
         st.divider()
         
-        # --- B. CATEGORY CIRCLE BUTTONS ---
         st.markdown("### 📂 Browse by Category")
-        
         cat_c1, cat_c2, cat_c3, cat_c4, cat_c5, cat_c6 = st.columns(6)
         
         def set_category(cat):
             st.session_state.selected_category = cat
 
-        # IMPORTANT: These buttons now map to the 'Category' column in DB
         with cat_c1:
             if st.button("💡\nLights"): set_category("Lights")
         with cat_c2:
@@ -280,11 +267,10 @@ if selected_page == "View Equipment":
         with cat_c4:
             if st.button("🔊\nAudio"): set_category("Audio")
         with cat_c5:
-            if st.button("🎙️\nMICs"): set_category("MICs (Recording Studio)")
+            if st.button("🥽\nVR Headset"): set_category("VR Headset")
         with cat_c6:
             if st.button("📦\nOthers"): set_category("Others")
 
-        # Show currently selected filter
         if st.session_state.selected_category != 'ALL':
             st.info(f"Filtering by Category: **{st.session_state.selected_category}**")
             if st.button("Clear Filter ✖️"):
@@ -293,11 +279,9 @@ if selected_page == "View Equipment":
 
         st.write("") 
 
-        # --- C. FILTERS & TABLE ---
         with st.container(border=True):
             col1, col2 = st.columns([1, 1])
             with col1:
-                # Disable Type dropdown if Category Button is active
                 disabled_dropdown = st.session_state.selected_category != 'ALL'
                 selected_type = st.selectbox('Filter by Type', ['ALL'] + types, disabled=disabled_dropdown)
             with col2:
@@ -306,7 +290,6 @@ if selected_page == "View Equipment":
             avail_map = {"All": "All", "Available Only": "Yes", "Loaned Out": "No"}
             
             try:
-                # FETCH DATA using the Category Column Logic
                 filtered_data = fetch_equipment_data(
                     conn, 
                     avail_map[selected_availability], 
@@ -331,48 +314,25 @@ if selected_page == "View Equipment":
                         )
             except Exception as e:
                 st.error(f"Database Error: {e}")
-
-    # --- CHATBOT WITH CUSTOM LAUNCHER ---
+    # --- CHATBOT & FLOATING HELP TEXT ---
+    
+    # 1. This DIV creates the speech bubble text "Need Help?" floating at bottom right
+    st.markdown('<div class="floating-message">💬 <b>Need Help?</b><br>Support Assistant</div>', unsafe_allow_html=True)
+    
+    # 2. This loads the Botpress Chatbot
     chatbot_code = """
     <div id="chatbot-container"></div>
-    <div id="custom-chat-trigger" onclick="toggleChat()">
-        <span style="font-size: 20px;">💬</span>
-        <span>Need Help? Support Assistant</span>
-    </div>
     <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
     <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
-    <style>
-        body { background: transparent !important; }
-        .bp-widget-widget { display: none !important; }
-        #custom-chat-trigger {
-            position: fixed; bottom: 25px; right: 25px;
-            background-color: #ffffff; color: #31333F;
-            border: 1px solid #dcdcdc; border-radius: 30px;
-            padding: 12px 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            cursor: pointer; z-index: 99999;
-            font-family: sans-serif; font-size: 15px; font-weight: 600;
-            display: flex; align-items: center; gap: 10px;
-            transition: all 0.3s ease; pointer-events: auto !important;
-        }
-        #custom-chat-trigger:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.2); background-color: #f8f9fa; }
-        .bp-widget-side, .bp-widget-webchat { pointer-events: auto !important; }
-    </style>
-    <script>
-        function toggleChat() { window.botpressWebChat.sendEvent({ type: 'toggle' }); }
-    </script>
     """
-    components.html(chatbot_code, height=800)
-
-
-# === PAGE: LOAN & RETURN ===
+    components.html(chatbot_code, height=600)
+    
 elif selected_page == "Loan & Return":
     st.title("📑 Equipment Loan & Return")
-    
     with get_database_connection() as conn:
         types = fetch_types(conn)
         tab_loan, tab_return = st.tabs(["📤 Loan Out", "📥 Return Item"])
 
-        # --- LOAN TAB ---
         with tab_loan:
             st.subheader("Process New Loan")
             c_fil, c_date = st.columns([1, 1])
@@ -387,7 +347,6 @@ elif selected_page == "Loan & Return":
                 with st.form("loan_form"):
                     st.markdown("### Select Items to Loan")
                     st.caption("Check the box on the left to select an item.")
-                    
                     h1, h2, h3, h4 = st.columns([0.5, 2.5, 2, 2])
                     h1.markdown("**Select**")
                     h2.markdown("**Equipment**")
@@ -431,7 +390,6 @@ elif selected_page == "Loan & Return":
             else:
                 st.info("No items available.")
 
-        # --- RETURN TAB ---
         with tab_return:
             st.subheader("Process Return")
             return_type_filter = st.selectbox("Filter by Type", ['ALL'] + types, key="return_type")
