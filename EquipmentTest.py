@@ -86,7 +86,7 @@ st.markdown("""
 
 # --- 3. DATABASE FUNCTIONS ---
 def get_database_connection():
-    return sqlite3.connect('daci_database')
+    return sqlite3.connect('daci_database.db')
 
 # --- API ENDPOINT FOR AI BOT (Backdoor) ---
 if st.query_params.get("api") == "true":
