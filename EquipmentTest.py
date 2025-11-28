@@ -317,7 +317,7 @@ elif selected_page == "Loan & Return":
     st.title("📑 Equipment Loan & Return")
     with get_database_connection() as conn:
         types = fetch_types(conn)
-        tab_loan, tab_return = st.tabs(["⬆️ Loan Out", "⬇️ Return Item"])
+        tab_loan, tab_return = st.tabs(["📤 Loan Out", "📥 Return Item"])
 
         with tab_loan:
             st.subheader("Process New Loan")
@@ -410,7 +410,7 @@ elif selected_page == "Loan & Return":
                             st.markdown("<hr style='margin: 5px 0; opacity: 0.3;'>", unsafe_allow_html=True)
 
                     st.write("")
-                    submitted_return = st.form_submit_button("Confirm Return ✅", type="primary")
+                    submitted_return = st.form_submit_button("Confirm Return 📥", type="primary")
 
                     if submitted_return:
                         if selected_return_ids:
@@ -430,16 +430,46 @@ elif selected_page == "Loan & Return":
 # --- 7. GLOBAL CHATBOT (Loads on ALL pages) ---
 chatbot_code = """
 <div id="chatbot-container"></div>
-<script src="https://cdn.botpress.cloud/webchat/v3.3/inject.js" defer></script>
+
+<!-- 1. The Floating Message Container -->
+<div id="chat-label">
+    💬 Need Help? Scroll Down to find Support Assistant Bot
+</div>
+
+<!-- 2. The Floating Button -->
+<div id="custom-chat-trigger" onclick="toggleChat()">
+    <span style="font-size: 30px;">💬</span>
+</div>
+
+<script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
 <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
 <style>
-    /* 1. Make the body of the iframe transparent so we see the website behind it */
+    /* Make the body of the iframe transparent so we see the website behind it */
     body { background: transparent !important; }
     
-    /* 2. Hide the default Botpress launcher */
+    /* Hide the default Botpress launcher */
     .bp-widget-widget { display: none !important; }
 
-    /* 3. Style the Custom Trigger Button (CIRCULAR) */
+    /* STYLE FOR THE TEXT LABEL */
+    #chat-label {
+        position: fixed;
+        bottom: 35px; /* Aligns roughly with center of button */
+        right: 100px; /* Position to the left of the button */
+        background-color: #ffffff;
+        color: #333;
+        padding: 10px 15px;
+        border-radius: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        font-family: sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        z-index: 999999;
+        pointer-events: auto !important;
+        white-space: nowrap; /* Keep text on one line */
+        border: 1px solid #e0e0e0;
+    }
+
+    /* STYLE FOR THE CIRCULAR BUTTON */
     #custom-chat-trigger {
         position: fixed; 
         bottom: 25px; 
@@ -456,8 +486,6 @@ chatbot_code = """
         cursor: pointer; 
         z-index: 999999;
         transition: all 0.3s ease; 
-        
-        /* CRITICAL: Allows the button to be clicked even though the iframe is fixed */
         pointer-events: auto !important;
     }
     
@@ -466,7 +494,7 @@ chatbot_code = """
         box-shadow: 0 6px 16px rgba(0,0,0,0.3); 
     }
     
-    /* 4. Ensure the actual chat window is clickable when open */
+    /* Ensure the actual chat window is clickable when open */
     .bp-widget-side, .bp-widget-webchat { 
         pointer-events: auto !important; 
     }
@@ -475,5 +503,4 @@ chatbot_code = """
     function toggleChat() { window.botpressWebChat.sendEvent({ type: 'toggle' }); }
 </script>
 """
-# We place this at the very end. 
 components.html(chatbot_code, height=800)
