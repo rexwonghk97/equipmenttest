@@ -1,4 +1,4 @@
-import streamlit as st
+\import streamlit as st
 import pandas as pd
 import sqlite3
 import streamlit.components.v1 as components
@@ -428,42 +428,39 @@ elif selected_page == "Loan & Return":
                 st.info("No items loaned out.")
 
 # --- 7. GLOBAL CHATBOT (Loads on ALL pages) ---
-# NOTE: The styling for the BUTTON (#custom-chat-trigger) must go HERE, 
-# because it lives inside the iframe.
 chatbot_code = """
 <div id="chatbot-container"></div>
+
+<!-- REMOVED THE TEXT, NOW IT IS A CIRCULAR BUTTON -->
 <div id="custom-chat-trigger" onclick="toggleChat()">
-    <span style="font-size: 20px;">💬</span>
-    <span>Need Help? Support Assistant</span>
+    <span style="font-size: 30px;">💬</span>
 </div>
+
 <script src="https://cdn.botpress.cloud/webchat/v3.4/inject.js"></script>
 <script src="https://files.bpcontent.cloud/2025/11/27/17/20251127174335-663UOJ00.js" defer></script>
 <style>
     /* 1. Make the body of the iframe transparent so we see the website behind it */
     body { background: transparent !important; }
     
-    /* 2. Hide the default Botpress launcher if present */
+    /* 2. Hide the default Botpress launcher */
     .bp-widget-widget { display: none !important; }
 
-    /* 3. Style the Custom Trigger Button (Floating Pill) */
+    /* 3. Style the Custom Trigger Button (CIRCULAR) */
     #custom-chat-trigger {
         position: fixed; 
         bottom: 25px; 
         right: 25px;
-        background-color: #ffffff; 
-        color: #31333F;
-        border: 1px solid #dcdcdc; 
-        border-radius: 30px;
-        padding: 12px 24px; 
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        background-color: #2196f3; /* Blue background */
+        color: white;
+        border-radius: 50%; /* Circle */
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
         cursor: pointer; 
         z-index: 999999;
-        font-family: sans-serif; 
-        font-size: 15px; 
-        font-weight: 600;
-        display: flex; 
-        align-items: center; 
-        gap: 10px;
         transition: all 0.3s ease; 
         
         /* CRITICAL: Allows the button to be clicked even though the iframe is fixed */
@@ -471,9 +468,8 @@ chatbot_code = """
     }
     
     #custom-chat-trigger:hover { 
-        transform: translateY(-2px); 
-        box-shadow: 0 6px 16px rgba(0,0,0,0.2); 
-        background-color: #f8f9fa; 
+        transform: scale(1.1); 
+        box-shadow: 0 6px 16px rgba(0,0,0,0.3); 
     }
     
     /* 4. Ensure the actual chat window is clickable when open */
@@ -485,6 +481,5 @@ chatbot_code = """
     function toggleChat() { window.botpressWebChat.sendEvent({ type: 'toggle' }); }
 </script>
 """
-# We place this at the very end. The CSS in st.markdown puts this iframe 
-# on top of everything, covering the whole screen.
+# We place this at the very end. 
 components.html(chatbot_code, height=800)
