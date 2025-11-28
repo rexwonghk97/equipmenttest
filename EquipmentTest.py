@@ -1,4 +1,4 @@
-\import streamlit as st
+import streamlit as st
 import pandas as pd
 import sqlite3
 import streamlit.components.v1 as components
